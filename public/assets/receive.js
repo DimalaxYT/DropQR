@@ -984,6 +984,29 @@
     }, { signal: docSignal });
 
     // -------------------------------------------------------------------------
+    // Bandeau de capacités (une seule requête, valeurs du serveur)
+    // -------------------------------------------------------------------------
+    function fillFacts() {
+      const facts = document.querySelectorAll('[data-rx-fact]');
+      if (!facts.length) return;
+      fetch('/api/config', { cache: 'force-cache', credentials: 'same-origin' })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((config) => {
+          if (!config) return;
+          facts.forEach((node) => {
+            const key = node.dataset.rxFact;
+            if (key === 'ttl' && config.defaultTtlMinutes) node.textContent = `${config.defaultTtlMinutes} min`;
+            if (key === 'size' && config.maxFileSizeHuman) node.textContent = config.maxFileSizeHuman;
+            if (key === 'max' && config.maxTtlMinutes) {
+              const hours = config.maxTtlMinutes / 60;
+              node.textContent = Number.isInteger(hours) ? `${hours} h` : `${config.maxTtlMinutes} min`;
+            }
+          });
+        })
+        .catch(() => {});
+    }
+
+    // -------------------------------------------------------------------------
     // Démarrage
     // -------------------------------------------------------------------------
     cleanupPrevious = () => {
@@ -991,6 +1014,7 @@
       stopScan();
     };
 
+    fillFacts();
     renderRecent();
     showEmpty();
 

@@ -35,7 +35,16 @@ const initSite = () => {
     siteObserver = null;
   }
 
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // matchMedia n'existe pas partout (navigateurs anciens, environnements de
+  // test) : on répond « non » plutôt que de casser toute la page.
+  const media = (query) => {
+    try {
+      return typeof window.matchMedia === 'function' && window.matchMedia(query).matches;
+    } catch (_error) {
+      return false;
+    }
+  };
+  const reducedMotion = media('(prefers-reduced-motion: reduce)');
   const root = document.documentElement;
 
   const contactLinks = [...document.querySelectorAll('[data-discord-contact]')];
@@ -113,22 +122,71 @@ const initSite = () => {
       .catch(() => {});
   }
 
-  // Barre de navigation (même comportement que la landing): fond flouté au
-  // scroll + menu déroulant sur mobile.
+  // Barre de navigation : verre dépoli au scroll, progression de lecture, menu
+  // déroulant sur petit écran, et lien de la page courante marqué .is-current.
   const nv = document.getElementById('nv');
   if (nv) {
     const burger = nv.querySelector('.nv-burger');
+    const progress = nv.querySelector('.nv-progress i');
+
     const setOpen = (open) => {
       nv.classList.toggle('open', open);
       if (burger) burger.setAttribute('aria-expanded', String(open));
     };
-    const onScrollNav = () => nv.classList.toggle('scrolled', window.scrollY > 28);
-    window.addEventListener('scroll', onScrollNav, { passive: true, signal });
+
+    // Lien actif : /receive, /help… et ancre de la landing (/ #product).
+    const path = window.location.pathname.replace(/\/+$/, '') || '/';
+    nv.querySelectorAll('.nv-links a').forEach((link) => {
+      let samePath = false;
+      try {
+        const url = new URL(link.href, window.location.href);
+        const target = url.pathname.replace(/\/+$/, '') || '/';
+        const anchorOnly = url.pathname === path && url.hash;
+        samePath = target === path || (path === '/' && url.pathname === '/' && !url.hash);
+        if (anchorOnly) samePath = false;
+      } catch (_error) {
+        samePath = false;
+      }
+      link.classList.toggle('is-current', samePath);
+      if (samePath) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+      // /receive est aussi la cible de /receive?code=… (chip « Receive »).
+      if (link.classList.contains('nv-chip') && path === '/receive') {
+        link.classList.add('is-current');
+        link.setAttribute('aria-current', 'page');
+      }
+    });
+
+    let ticking = false;
+    const onScrollNav = () => {
+      ticking = false;
+      const y = window.scrollY || 0;
+      nv.classList.toggle('scrolled', y > 24);
+      if (progress) {
+        const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        const ratio = Math.min(1, Math.max(0, y / max));
+        progress.style.setProperty('--nv-progress', `${(ratio * 100).toFixed(2)}%`);
+      }
+    };
+    const requestScrollUpdate = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(onScrollNav);
+    };
+
+    window.addEventListener('scroll', requestScrollUpdate, { passive: true, signal });
+    window.addEventListener('resize', requestScrollUpdate, { passive: true, signal });
     onScrollNav();
     setOpen(false);
+
     if (burger) burger.addEventListener('click', () => setOpen(!nv.classList.contains('open')), { signal });
     nv.querySelectorAll('.nv-links a').forEach((link) => link.addEventListener('click', () => setOpen(false), { signal }));
-    document.addEventListener('keydown', (event) => { if (event.key === 'Escape') setOpen(false); }, { signal });
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      const wasOpen = nv.classList.contains('open');
+      setOpen(false);
+      if (wasOpen && burger) burger.focus();
+    }, { signal });
     document.addEventListener('click', (event) => { if (!nv.contains(event.target)) setOpen(false); }, { signal });
   }
 

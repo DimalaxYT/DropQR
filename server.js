@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1944,19 +1944,22 @@ function publicTransferPayload(req, meta) {
 // En-tête et pied de page partagés avec les pages statiques (design landing).
 function renderSiteHeader() {
   return `  <header class="nv" id="nv">
-    <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span>DropQR</span></a>
-    <nav class="nv-links" id="nv-links" aria-label="Primary">
-      <a href="/#product">Product</a>
-      <a href="/#how">How it works</a>
-      <a href="/#faq">FAQ</a>
-      <a class="nv-app" href="/help"><span class="ico" aria-hidden="true">?</span>Help</a>
-      <a class="nv-app" href="/receive"><span class="ico" aria-hidden="true">↓</span>Receive</a>
-    </nav>
-    <div class="nv-right">
-      <div class="nav-auth" data-discord-auth></div>
-      <a class="nv-cta" href="/upload">Start sharing <span class="arrow" aria-hidden="true">→</span></a>
-      <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+    <div class="nv-bar">
+      <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span class="nv-word">DropQR</span></a>
+      <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <a class="nv-link" href="/#product">Product</a>
+        <a class="nv-link" href="/#how">How it works</a>
+        <a class="nv-link" href="/#faq">FAQ</a>
+        <a class="nv-link" href="/help">Help</a>
+        <a class="nv-chip" href="/receive"><span class="nv-chip-ico" aria-hidden="true">↓</span>Receive</a>
+      </nav>
+      <div class="nv-right">
+        <div class="nav-auth" data-discord-auth></div>
+        <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
+        <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+      </div>
     </div>
+    <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>`;
 }
 
@@ -1989,7 +1992,8 @@ function renderSharePage(req, meta) {
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>Télécharger ${escapeHtml(meta.originalName)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="stylesheet" href="/assets/pages.css?v=4">
+  <link rel="stylesheet" href="/assets/nav.css?v=1">
 </head>
 <body>
 ${renderSiteHeader()}
@@ -2030,7 +2034,8 @@ function renderMessagePage(title, message) {
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="stylesheet" href="/assets/pages.css?v=4">
+  <link rel="stylesheet" href="/assets/nav.css?v=1">
 </head>
 <body>
 ${renderSiteHeader()}

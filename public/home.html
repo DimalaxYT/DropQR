@@ -11,27 +11,32 @@
   <meta property="og:description" content="Drop a file. It becomes shareable. Get a link or a QR code. Done.">
   <meta property="og:type" content="website">
   <title>DropQR — Share without limits</title>
-  <link rel="stylesheet" href="/assets/landing.css?v=3">
+  <link rel="stylesheet" href="/assets/landing.css?v=4">
+  <link rel="stylesheet" href="/assets/nav.css?v=1">
   <script src="/assets/vendor/qrcode.min.js?v=1" defer></script>
-  <script type="module" src="/assets/landing3d.js?v=1"></script>
+  <script type="module" src="/assets/landing3d.js?v=2"></script>
 </head>
 <body>
   <canvas id="gl" aria-hidden="true"></canvas>
   <canvas id="gl2" aria-hidden="true"></canvas>
 
   <header class="nv" id="nv">
-    <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span>DropQR</span></a>
-    <nav class="nv-links" aria-label="Primary">
-      <a href="#product">Product</a>
-      <a href="#how">How it works</a>
-      <a href="#faq">FAQ</a>
-      <a class="nv-app" href="/help"><span class="ico" aria-hidden="true">?</span>Help</a>
-      <a class="nv-app" href="/receive"><span class="ico" aria-hidden="true">↓</span>Receive</a>
-    </nav>
-    <div class="nv-right">
-      <div class="nav-auth" data-discord-auth></div>
-      <a class="nv-cta" href="/" id="cta-start">Start sharing <span class="arrow" aria-hidden="true">→</span></a>
+    <div class="nv-bar">
+      <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span class="nv-word">DropQR</span></a>
+      <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <a class="nv-link is-current" href="/#product">Product</a>
+        <a class="nv-link is-current" href="/#how">How it works</a>
+        <a class="nv-link is-current" href="/#faq">FAQ</a>
+        <a class="nv-link" href="/help">Help</a>
+        <a class="nv-chip" href="/receive"><span class="nv-chip-ico" aria-hidden="true">↓</span>Receive</a>
+      </nav>
+      <div class="nv-right">
+        <div class="nav-auth" data-discord-auth></div>
+        <a class="nv-cta" id="cta-start" href="/"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
+        <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+      </div>
     </div>
+    <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
   <main>

@@ -9,23 +9,27 @@
   <title>Aide — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=4">
   <link rel="stylesheet" href="/assets/code-slots.css?v=2">
-  <link rel="stylesheet" href="/assets/receive.css?v=1">
+  <link rel="stylesheet" href="/assets/receive.css?v=2">
+  <link rel="stylesheet" href="/assets/nav.css?v=1">
 </head>
 <body>
   <header class="nv" id="nv">
-    <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span>DropQR</span></a>
-    <nav class="nv-links" id="nv-links" aria-label="Primary">
-      <a href="/#product">Product</a>
-      <a href="/#how">How it works</a>
-      <a href="/#faq">FAQ</a>
-      <a class="nv-app active" href="/help" aria-current="page"><span class="ico" aria-hidden="true">?</span>Help</a>
-      <a class="nv-app" href="/receive"><span class="ico" aria-hidden="true">↓</span>Receive</a>
-    </nav>
-    <div class="nv-right">
-      <div class="nav-auth" data-discord-auth></div>
-      <a class="nv-cta" href="/upload">Start sharing <span class="arrow" aria-hidden="true">→</span></a>
-      <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+    <div class="nv-bar">
+      <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span class="nv-word">DropQR</span></a>
+      <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <a class="nv-link" href="/#product">Product</a>
+        <a class="nv-link" href="/#how">How it works</a>
+        <a class="nv-link" href="/#faq">FAQ</a>
+        <a class="nv-link is-current" href="/help">Help</a>
+        <a class="nv-chip" href="/receive"><span class="nv-chip-ico" aria-hidden="true">↓</span>Receive</a>
+      </nav>
+      <div class="nv-right">
+        <div class="nav-auth" data-discord-auth></div>
+        <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
+        <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+      </div>
     </div>
+    <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
   <div class="shell">
@@ -69,6 +73,6 @@
       <span class="colophon">Free unlimited file sharing — drop, share, done.</span>
     </footer>
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/site.js?v=17" defer></script>
 </body>
 </html>

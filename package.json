@@ -1,6 +1,6 @@
 {
   "name": "qr-file-transfer-site",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "description": "Site simple pour transférer des fichiers entre appareils avec QR code et suppression automatique.",
   "main": "server.js",
   "scripts": {

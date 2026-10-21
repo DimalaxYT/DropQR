@@ -5,6 +5,7 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 ## Pages
 
 - `/` : accueil — expérience WebGL 3D immersive (scroll cinématique, Drop Zone fonctionnelle)
+- barre de navigation commune (`assets/nav.css`) : barre flottante en verre, liens segmentés, chip *Receive*, CTA à pastille, progression de lecture, panneau de menu sur petit écran
 - `/upload` : création d’un transfert avec barre de progression
 - `/receive` : console de récupération — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots)), **scan de QR** (caméra ou image), codes récents, compte à rebours d’expiration
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
@@ -461,3 +462,27 @@ La page **Recevoir** devient une console de récupération complète (PC et tél
 - **erreurs expliquées** : introuvable (404), expiré/supprimé (410), trop de requêtes (429), serveur — chacune avec son titre et son message ;
 - **toasts** pour les retours discrets, vibrations sur téléphone, `prefers-reduced-motion` respecté, et **nettoyage des minuteries / de la caméra** à chaque navigation PJAX ;
 - version portée à **1.14.0** (`/api/health`).
+
+## Version 1.15.0
+
+Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
+
+### Barre de navigation (`assets/nav.css`, commune à toutes les pages)
+
+- **barre flottante en verre dépoli** (largeur maximale 1240 px, rayon 20 px, flou 20 px + saturation, liseré lumineux) au lieu de la bande pleine largeur ; elle se compacte et s’opacifie au défilement ;
+- **marque retravaillée** : marque QR en relief avec module violet lumineux qui pivote au survol, mot-symbole resserré ;
+- **liens segmentés** dans un conteneur translucide, état de page courante calculé par `site.js` (`.is-current` + `aria-current`), et **chip *Receive*** mise en avant avec dégradé violet → bleu quand on est sur `/receive` ;
+- **CTA à pastille** : libellé + flèche dans une pastille sombre, effet d’élévation au survol ;
+- **progression de lecture** : fine ligne dégradée fixée en haut de la fenêtre, mise à jour au `requestAnimationFrame` ;
+- **menu en panneau de verre** sous 1040 px : lignes de 48 px avec pastille d’état, chip Receive pleine largeur, ouverture/fermeture au clavier (`Échap`), fermeture au clic extérieur, `aria-expanded` synchronisé ;
+- version téléphone (`header.nv.m-top`) : barre compacte avec CTA contextuel (*Envoyer* / *Recevoir*) au-dessus de la barre d’onglets ;
+- le balisage est **identique sur toutes les pages** (y compris celles rendues par le serveur) pour que le remplacement PJAX de `#nv` reste cohérent ; `site.js` tolère désormais l’absence de `matchMedia`.
+
+### Page Recevoir
+
+- **bandeau de capacités** sous le titre (expiration par défaut, taille maximale, durée maximale) alimenté par `GET /api/config` ;
+- espacement recalculé pour la nouvelle barre flottante, `scroll-margin` sur la carte de résultat pour les remontées automatiques sur téléphone.
+
+### Divers
+
+- version portée à **1.15.0** (`/api/health`) ; feuilles et scripts versionnés (`nav.css?v=1`, `receive.css?v=2`, `receive.js?v=10`, `site.js?v=17`).
