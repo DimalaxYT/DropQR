@@ -1,36 +1,143 @@
-/* DropQR — Code Slots
-   Adaptation maison du composant « Code Slots » de React Bits
+/* DropQR — Code Slots « neon deck »
+   Adaptation très libre du composant « Code Slots » de React Bits
    (https://reactbits.dev/micro/code-slots) pour la saisie du code DropQR.
 
-   Même intention : une rangée de cases qui accueillent chaque caractère, avec
-   une pastille qui « atterrit » (petit rebond), un curseur clignotant dans la
-   case active, une cascade quand plusieurs caractères arrivent d'un coup, et
-   des états erreur / succès. Ici, tout est en CSS pur : aucun framework, aucune
-   dépendance, et le vrai <input> reste dans le DOM (clavier, collage, label,
-   lecteurs d'écran). Sans JavaScript, le champ garde son apparence classique. */
+   Rangée de cases posée sur une plaque de verre à bordure conique animée :
+   chaque caractère atterrit avec un rebond, une onde et un reflet, le curseur
+   respire dans la case active, une barre de progression suit la saisie.
+   États : recherche (scan lumineux), erreur (glitch chromatique), succès
+   (cascade verte + halo). Le vrai <input> reste dans le DOM, transparent :
+   clavier, collage, label, lecteurs d'écran et soumission inchangés.
+
+   Sans JavaScript, le champ garde exactement son apparence d'origine.
+   Tout est en CSS + un peu de JS maison : aucune dépendance. */
+
+@property --cs-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
 
 .cs {
-  --cs-accent: var(--ink, #ece9e2);
+  --cs-accent: #8b7cff;
+  --cs-accent-2: #5b8cff;
   --cs-ink: var(--ink, #ece9e2);
-  --cs-slot-bg: rgba(255, 255, 255, .035);
-  --cs-digit: #0b0c0f;
-  --cs-danger: var(--coral, #ff8f7a);
-  --cs-gap: 8px;
-  --cs-radius: clamp(9px, 2.4vw, 12px);
-  --cs-settle: 300ms;
-  --cs-cascade: 20ms;
+  --cs-danger: #ff6b6b;
+  --cs-success: #58d39b;
+  --cs-gap: clamp(6px, .9vw, 9px);
+  --cs-radius: clamp(9px, 1vw, 13px);
+  --cs-settle: 380ms;
+  --cs-slot-max: 48px;
+  --cs-angle: 0deg;
+  --cs-mx: 50%;
+  --cs-my: 50%;
   position: relative;
   display: block;
   width: 100%;
+  max-width: calc(var(--cs-length, 7) * var(--cs-slot-max) + (var(--cs-length, 7) - 1) * var(--cs-gap) + 24px);
+  margin-inline: auto;
 }
 
+/* ---------- Plaque ---------- */
+.cs-deck {
+  --cs-rx: 0deg;
+  --cs-ry: 0deg;
+  position: relative;
+  padding: clamp(6px, .9vw, 10px);
+  border: 1px solid transparent;
+  border-radius: calc(var(--cs-radius) + 12px);
+  background:
+    radial-gradient(120% 160% at 50% -40%, rgba(139, 124, 255, .22), transparent 62%) padding-box,
+    linear-gradient(180deg, rgba(14, 15, 22, .94), rgba(8, 9, 14, .97)) padding-box,
+    conic-gradient(from var(--cs-angle),
+      rgba(139, 124, 255, .85),
+      rgba(91, 140, 255, .3) 22%,
+      rgba(236, 233, 226, .06) 48%,
+      rgba(139, 124, 255, .18) 72%,
+      rgba(139, 124, 255, .85)) border-box;
+  box-shadow:
+    0 26px 70px -36px rgba(0, 0, 0, .95),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+  transform: perspective(900px) rotateX(var(--cs-rx)) rotateY(var(--cs-ry));
+  transform-style: preserve-3d;
+  transition: transform .5s var(--ease-silk, cubic-bezier(.22, .61, .21, 1)), box-shadow .45s ease;
+  will-change: transform;
+}
+
+/* Apparition douce de la plaque (opacité uniquement : le transform est réservé
+   au tilt, sinon l'animation écraserait l'inclinaison). */
+.cs-deck {
+  animation: cs-deck-in 620ms cubic-bezier(.22, .61, .21, 1) both;
+}
+
+@keyframes cs-deck-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.cs--focus .cs-deck {
+  box-shadow:
+    0 30px 80px -34px rgba(80, 66, 200, .75),
+    0 0 0 1px rgba(139, 124, 255, .18),
+    inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+
+.cs--success .cs-deck {
+  box-shadow:
+    0 30px 80px -34px rgba(40, 160, 110, .6),
+    0 0 0 1px rgba(88, 211, 155, .25),
+    inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+
+.cs--error .cs-deck {
+  box-shadow:
+    0 30px 80px -34px rgba(190, 50, 60, .55),
+    0 0 0 1px rgba(255, 107, 107, .25),
+    inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+
+/* La bordure conique tourne pendant l'interaction (focus, recherche, succès). */
+.cs--focus .cs-deck,
+.cs--loading .cs-deck,
+.cs--success .cs-deck {
+  animation: cs-spin 6s linear infinite;
+}
+
+@keyframes cs-spin {
+  to { --cs-angle: 360deg; }
+}
+
+/* Halo qui suit le pointeur. */
+.cs-aura {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    220px circle at var(--cs-mx) var(--cs-my),
+    rgba(139, 124, 255, .26),
+    rgba(91, 140, 255, .1) 45%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
+  transition: opacity .45s ease;
+}
+
+.cs:hover .cs-aura,
+.cs--focus .cs-aura {
+  opacity: 1;
+}
+
+/* ---------- Rangée et cases ---------- */
 .cs-row {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(var(--cs-length, 7), minmax(0, 1fr));
   gap: var(--cs-gap);
   width: 100%;
-  max-width: calc(var(--cs-length, 7) * 48px + (var(--cs-length, 7) - 1) * var(--cs-gap));
-  margin-inline: auto;
 }
 
 .cs-slot {
@@ -39,56 +146,83 @@
   place-items: center;
   aspect-ratio: 1;
   overflow: hidden;
-  border: 1px solid rgba(236, 233, 226, .12);
+  border: 1px solid rgba(236, 233, 226, .1);
   border-radius: var(--cs-radius);
-  background: var(--cs-slot-bg);
-  color: var(--cs-digit);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .055), rgba(255, 255, 255, .012));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .07),
+    inset 0 -14px 22px -18px rgba(0, 0, 0, 1);
+  color: var(--cs-ink);
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: clamp(16px, 4.6vw, 21px);
-  font-weight: 700;
+  font-size: clamp(17px, 4.6vw, 23px);
+  font-weight: 800;
   line-height: 1;
   text-transform: uppercase;
   transition:
     background-color var(--cs-settle) ease,
-    border-color 250ms ease,
-    box-shadow 250ms ease;
+    border-color 300ms ease,
+    box-shadow 350ms ease;
 }
 
+/* Reflet qui balaie la case au moment où le caractère atterrit. */
 .cs-slot::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .14), transparent 70%);
+  background: linear-gradient(115deg, transparent 34%, rgba(255, 255, 255, .55) 50%, transparent 66%);
   opacity: 0;
-  transition: opacity var(--cs-settle) ease;
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.cs-digit {
+  position: relative;
+  z-index: 2;
+  display: block;
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Onde circulaire à l'atterrissage. */
+.cs-ring {
+  position: absolute;
+  inset: 1px;
+  z-index: 3;
+  border: 1px solid rgba(176, 166, 255, .9);
+  border-radius: inherit;
+  opacity: 0;
   pointer-events: none;
 }
 
 .cs-slot.is-filled {
-  border-color: transparent;
-  background: var(--cs-accent);
-  color: var(--cs-digit);
+  border-color: rgba(139, 124, 255, .55);
+  background: linear-gradient(180deg, rgba(139, 124, 255, .34), rgba(66, 76, 160, .16));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    inset 0 -14px 22px -18px rgba(0, 0, 0, 1),
+    0 10px 28px -14px rgba(120, 110, 255, .95),
+    0 0 0 1px rgba(139, 124, 255, .12);
 }
 
-.cs-slot.is-filled::before { opacity: 1; }
-
-.cs-digit {
-  position: relative;
-  display: block;
-  transform: translateY(0);
-  will-change: transform, opacity;
+.cs-slot.is-filled .cs-digit {
+  color: #fff;
+  text-shadow:
+    0 0 16px rgba(180, 172, 255, .9),
+    0 0 42px rgba(91, 140, 255, .45);
 }
 
-/* ---------- Curseur (case active) ---------- */
+/* ---------- Curseur ---------- */
 .cs-slot.is-active::after {
   content: "";
   position: absolute;
   left: 50%;
   top: 50%;
+  z-index: 4;
   width: 2px;
-  height: 44%;
+  height: 46%;
   border-radius: 2px;
-  background: var(--cs-ink);
+  background: linear-gradient(180deg, #fff, #a99bff);
+  box-shadow: 0 0 10px rgba(139, 124, 255, .95), 0 0 24px rgba(91, 140, 255, .65);
   transform: translate(-50%, -50%);
   opacity: 0;
 }
@@ -98,38 +232,113 @@
 }
 
 @keyframes cs-caret {
-  0%, 49% { opacity: .9; }
+  0%, 49% { opacity: .95; }
   50%, 100% { opacity: 0; }
 }
 
-/* Le champ natif est transparent : l'anneau de focus doit donc être dessiné
-   par la rangée, sinon il serait invisible (opacity: 0). */
-.cs:focus-within .cs-row {
-  border-radius: calc(var(--cs-radius) + 4px);
-  box-shadow: 0 0 0 3px rgba(139, 124, 255, .1);
+.cs-slot.is-active {
+  border-color: rgba(139, 124, 255, .8);
+  background: linear-gradient(180deg, rgba(139, 124, 255, .14), rgba(255, 255, 255, .02));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .1),
+    0 0 0 4px rgba(139, 124, 255, .1),
+    0 0 32px -8px rgba(139, 124, 255, .8);
 }
 
-.cs:focus-within .cs-slot.is-active {
-  border-color: rgba(139, 124, 255, .55);
-  box-shadow: 0 0 0 3px rgba(139, 124, 255, .16);
+.cs--focus .cs-slot.is-active {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .14),
+    0 0 0 4px rgba(139, 124, 255, .16),
+    0 0 40px -6px rgba(139, 124, 255, .95);
+}
+
+/* Champ vide et actif : les cases respirent doucement, en vague. */
+.cs--focus.cs--empty .cs-slot {
+  animation: cs-breathe 2.8s ease-in-out infinite;
+}
+
+.cs--focus.cs--empty .cs-slot:nth-child(2) { animation-delay: .14s; }
+.cs--focus.cs--empty .cs-slot:nth-child(3) { animation-delay: .28s; }
+.cs--focus.cs--empty .cs-slot:nth-child(4) { animation-delay: .42s; }
+.cs--focus.cs--empty .cs-slot:nth-child(5) { animation-delay: .56s; }
+.cs--focus.cs--empty .cs-slot:nth-child(6) { animation-delay: .7s; }
+.cs--focus.cs--empty .cs-slot:nth-child(7) { animation-delay: .84s; }
+.cs--focus.cs--empty .cs-slot:nth-child(8) { animation-delay: .98s; }
+
+.cs--focus.cs--empty .cs-slot.is-active {
+  animation: none;
+}
+
+@keyframes cs-breathe {
+  0%, 100% {
+    border-color: rgba(236, 233, 226, .1);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
+  }
+  50% {
+    border-color: rgba(139, 124, 255, .38);
+    box-shadow:
+      0 0 22px -6px rgba(139, 124, 255, .65),
+      inset 0 1px 0 rgba(255, 255, 255, .08);
+  }
 }
 
 /* ---------- Atterrissage / vidage ---------- */
+.cs-slot.is-landing {
+  animation: cs-pop var(--cs-settle) cubic-bezier(.34, 1.56, .64, 1) both;
+  animation-delay: var(--cs-delay, 0ms);
+}
+
 .cs-slot.is-landing .cs-digit {
   animation: cs-land var(--cs-settle) cubic-bezier(.34, 1.56, .64, 1) both;
   animation-delay: var(--cs-delay, 0ms);
 }
 
+.cs-slot.is-landing .cs-ring {
+  animation: cs-ring 560ms ease-out both;
+  animation-delay: var(--cs-delay, 0ms);
+}
+
+.cs-slot.is-landing::before {
+  animation: cs-sheen 620ms ease-out both;
+  animation-delay: calc(var(--cs-delay, 0ms) + 30ms);
+}
+
 @keyframes cs-land {
-  from { opacity: 0; transform: translateY(8px) scale(.78); }
-  60% { opacity: 1; }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(-7px) rotateX(-78deg) scale(.66);
+    filter: blur(7px);
+  }
+  55% { opacity: 1; filter: blur(0); }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes cs-pop {
+  0% { transform: scale(.9); }
+  55% { transform: scale(1.055); }
+  100% { transform: scale(1); }
+}
+
+@keyframes cs-ring {
+  0% { opacity: .95; transform: scale(.72); }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes cs-sheen {
+  0% { opacity: 0; transform: translateX(-120%); }
+  28% { opacity: .6; }
+  100% { opacity: 0; transform: translateX(120%); }
 }
 
 .cs-slot.is-draining {
-  background: transparent;
-  border-color: rgba(236, 233, 226, .12);
+  border-color: rgba(236, 233, 226, .16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, .03), transparent);
   color: var(--cs-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
 }
 
 .cs-slot.is-draining .cs-digit {
@@ -138,20 +347,84 @@
 }
 
 @keyframes cs-drain {
-  from { opacity: 1; transform: translateY(0) scale(1); }
-  to { opacity: 0; transform: translateY(-8px) scale(.78); }
+  0% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); filter: blur(0); }
+  100% {
+    opacity: 0;
+    transform: translateY(-9px) rotateX(70deg) scale(.7);
+    filter: blur(5px);
+  }
 }
 
-/* ---------- États ---------- */
+/* ---------- État « recherche » : scan lumineux ---------- */
+.cs--loading .cs-slot {
+  border-color: rgba(139, 124, 255, .4);
+}
+
+.cs--loading .cs-slot.is-filled {
+  border-color: rgba(167, 160, 255, .9);
+  background: linear-gradient(180deg, rgba(139, 124, 255, .46), rgba(76, 86, 180, .2));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .3),
+    0 14px 36px -12px rgba(139, 124, 255, 1),
+    0 0 0 1px rgba(167, 160, 255, .3);
+}
+
+.cs--loading .cs-slot.is-filled .cs-digit {
+  color: #fff;
+  text-shadow:
+    0 0 18px rgba(200, 194, 255, 1),
+    0 0 48px rgba(91, 140, 255, .7);
+}
+
+.cs--loading .cs-deck::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(167, 160, 255, .18) 44%,
+    rgba(255, 255, 255, .38) 50%,
+    rgba(167, 160, 255, .18) 56%,
+    transparent 70%
+  );
+  background-size: 240% 100%;
+  mix-blend-mode: screen;
+  animation: cs-scan 1.15s linear infinite;
+}
+
+@keyframes cs-scan {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+/* ---------- Erreur : glitch chromatique ---------- */
 .cs--error .cs-slot {
-  border-color: rgba(255, 143, 122, .6);
-  background: rgba(255, 143, 122, .1);
-  color: #ffc4b8;
-  box-shadow: 0 0 0 1px rgba(255, 143, 122, .18);
+  border-color: rgba(255, 107, 107, .7);
+  background: linear-gradient(180deg, rgba(255, 107, 107, .26), rgba(255, 70, 90, .07));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .16),
+    0 12px 30px -14px rgba(255, 70, 90, .8),
+    0 0 0 1px rgba(255, 107, 107, .16);
 }
 
-.cs--shake .cs-row {
-  animation: cs-shake 420ms cubic-bezier(.36, .07, .19, .97) both;
+.cs--error .cs-slot.is-filled .cs-digit {
+  color: #fff;
+  text-shadow:
+    -1.5px 0 rgba(0, 240, 255, .65),
+    1.5px 0 rgba(255, 60, 120, .7),
+    0 0 18px rgba(255, 107, 107, .8);
+}
+
+.cs--error .cs-row {
+  animation: cs-shake 440ms cubic-bezier(.36, .07, .19, .97) both;
+}
+
+.cs--error .cs-slot.is-filled {
+  animation: cs-glitch 340ms steps(2, end) 2;
 }
 
 @keyframes cs-shake {
@@ -161,38 +434,132 @@
   40%, 60% { transform: translateX(5px); }
 }
 
+@keyframes cs-glitch {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 1px); }
+  50% { transform: translate(1px, -1px); }
+  75% { transform: translate(-1px, 0); }
+}
+
+/* ---------- Succès : cascade verte + halo ---------- */
 .cs--success .cs-slot {
-  box-shadow: 0 0 0 1px rgba(88, 211, 155, .45), 0 10px 30px rgba(88, 211, 155, .16);
+  border-color: rgba(88, 211, 155, .7);
+  background: linear-gradient(180deg, rgba(88, 211, 155, .3), rgba(35, 130, 100, .12));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .22),
+    0 12px 34px -14px rgba(88, 211, 155, .9),
+    0 0 0 1px rgba(88, 211, 155, .14);
+  animation: cs-pass 620ms ease both;
 }
 
-.cs--success .cs-row {
-  animation: cs-wash 620ms ease both;
+.cs--success .cs-slot:nth-child(2) { animation-delay: 40ms; }
+.cs--success .cs-slot:nth-child(3) { animation-delay: 80ms; }
+.cs--success .cs-slot:nth-child(4) { animation-delay: 120ms; }
+.cs--success .cs-slot:nth-child(5) { animation-delay: 160ms; }
+.cs--success .cs-slot:nth-child(6) { animation-delay: 200ms; }
+.cs--success .cs-slot:nth-child(7) { animation-delay: 240ms; }
+.cs--success .cs-slot:nth-child(8) { animation-delay: 280ms; }
+
+.cs--success .cs-slot.is-filled .cs-digit {
+  color: #fff;
+  text-shadow:
+    0 0 16px rgba(140, 255, 205, .95),
+    0 0 44px rgba(88, 211, 155, .55);
 }
 
-@keyframes cs-wash {
-  0% { filter: brightness(1); }
-  40% { filter: brightness(1.35); }
-  100% { filter: brightness(1); }
+@keyframes cs-pass {
+  0% { transform: scale(1); filter: brightness(1); }
+  45% { transform: scale(1.06); filter: brightness(1.7); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
 
-.cs--disabled { opacity: .45; }
-.cs--disabled .cs-native { cursor: not-allowed; }
+.cs-flare {
+  position: absolute;
+  inset: -14% -6%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(60% 120% at 50% 50%, rgba(88, 211, 155, .45), rgba(88, 211, 155, .12) 45%, transparent 72%);
+  filter: blur(6px);
+}
 
-/* ---------- Le vrai champ, invisible, par-dessus les cases ---------- */
+.cs-flare.is-on {
+  animation: cs-flare 900ms cubic-bezier(.22, .61, .21, 1) both;
+}
+
+@keyframes cs-flare {
+  0% { opacity: 0; transform: scale(.55); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.12); }
+}
+
+/* ---------- Barre de progression ---------- */
+.cs-progress {
+  position: relative;
+  display: block;
+  width: calc(100% - 22px);
+  height: 2px;
+  margin: 11px auto 0;
+  border-radius: 999px;
+  background: rgba(236, 233, 226, .08);
+  overflow: hidden;
+  transition: background-color .3s ease;
+}
+
+.cs-progress i {
+  position: relative;
+  display: block;
+  width: var(--cs-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--cs-accent), var(--cs-accent-2));
+  box-shadow: 0 0 12px rgba(139, 124, 255, .85);
+  transition: width .4s var(--ease-silk, ease), background .35s ease;
+}
+
+.cs-progress i::after {
+  content: "";
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 12px 2px rgba(167, 160, 255, .9);
+  transform: translateY(-50%);
+  opacity: 1;
+  transition: opacity .3s ease;
+}
+
+.cs-progress.is-empty i::after { opacity: 0; }
+
+.cs-progress.is-success i {
+  background: linear-gradient(90deg, #58d39b, #7ce8c0);
+  box-shadow: 0 0 14px rgba(88, 211, 155, .9);
+}
+
+.cs-progress.is-error i {
+  background: linear-gradient(90deg, #ff6b6b, #ff9a7a);
+  box-shadow: 0 0 14px rgba(255, 107, 107, .9);
+}
+
+/* ---------- Le vrai champ, invisible, par-dessus la plaque ---------- */
 /* Sélecteur volontairement spécifique : mobile.css impose `min-height: 54px`
-   aux champs avec !important ; on doit pouvoir neutraliser cette hauteur pour
-   que la zone cliquable reste exactement celle des cases. */
+   aux champs avec !important ; on doit neutraliser cette hauteur pour que la
+   zone cliquable reste exactement celle des cases. */
 html .cs input.cs-native {
   position: absolute !important;
   inset: 0 !important;
-  z-index: 2;
+  z-index: 10;
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  border-radius: var(--cs-radius) !important;
+  border-radius: calc(var(--cs-radius) + 12px) !important;
   background: transparent !important;
   box-shadow: none !important;
   color: transparent !important;
@@ -204,10 +571,20 @@ html .cs input.cs-native {
   cursor: text;
 }
 
+.cs:focus-within .cs-progress {
+  background: rgba(139, 124, 255, .16);
+}
+
+.cs--disabled { opacity: .5; }
+.cs--disabled .cs-native { cursor: not-allowed; }
+
 /* ---------- Téléphone ---------- */
 @media (max-width: 520px) {
-  .cs { --cs-gap: 6px; }
+  .cs { --cs-gap: 6px; --cs-slot-max: 44px; }
+  .cs-deck { padding: 7px; }
   .cs-slot { font-size: clamp(16px, 5.2vw, 20px); }
+  .cs-aura { display: none; }
+  .cs-deck { transform: none; }
 }
 
 /* Formulaire mobile : les cases prennent toute la largeur, le bouton passe
@@ -226,10 +603,19 @@ html .cs input.cs-native {
   .cs-slot,
   .cs-slot::before,
   .cs-digit,
-  .cs-row {
+  .cs-row,
+  .cs-aura,
+  .cs-flare,
+  .cs-progress i {
     animation: none !important;
     transition: none !important;
   }
 
+  .cs-deck {
+    animation: none !important;
+    transform: none !important;
+  }
+
   .cs--focus .cs-slot.is-active::after { animation: none; opacity: .9; }
+  .cs--loading .cs-deck::after { display: none; }
 }

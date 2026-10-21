@@ -1,20 +1,20 @@
 'use strict';
 
-// DropQR — Code Slots
+// DropQR — Code Slots « neon deck »
 //
-// Adaptation du composant « Code Slots » de React Bits
+// Adaptation très libre du composant « Code Slots » de React Bits
 // (https://reactbits.dev/micro/code-slots) pour la page Recevoir : un seul
 // fichier, zéro dépendance, zéro framework.
 //
 // Principe : le vrai <input> reste en place (label, clavier, collage, lecteurs
-// d'écran, soumission du formulaire). On l'entoure simplement d'une rangée de
-// cases décoratives et on le rend transparent par-dessus. Sans JavaScript, le
-// champ s'affiche exactement comme avant — rien ne casse.
+// d'écran, soumission du formulaire). On l'entoure d'une plaque décorative et
+// on le rend transparent par-dessus. Sans JavaScript, le champ s'affiche
+// exactement comme avant — rien ne casse.
 //
 // Utilisation :
 //   <input id="transferCode" data-code-slots="7" ...>
-//   input.codeSlots.setValue('Q7R4M2K')   // programme
-//   input.codeSlots.setStatus('error')    // 'idle' | 'error' | 'success'
+//   input.codeSlots.setValue('Q7R4M2K')             // programme
+//   input.codeSlots.setStatus('loading')            // idle | loading | error | success
 //   input.addEventListener('codeslots:complete', (e) => e.detail.code)
 //
 // Quand les 7 caractères sont saisis (frappe ou collage), le formulaire est
@@ -22,10 +22,10 @@
 
 (() => {
   const MAX_LENGTH = 12;
-  const SETTLE_MS = 300;
+  const SETTLE_MS = 380;
   const CASCADE_MS = 20;
-  const ERROR_MS = 1100;
-  const SUCCESS_MS = 900;
+  const ERROR_MS = 1400;
+  const SUCCESS_MS = 1600;
 
   const normalize = (value, length) =>
     String(value || '')
@@ -58,17 +58,44 @@
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(pointer: coarse)').matches;
 
+  const canHover = () =>
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+  const vibrate = (pattern) => {
+    try {
+      if (navigator.vibrate) navigator.vibrate(pattern);
+    } catch (_error) {
+      /* API absente ou bloquée : sans importance */
+    }
+  };
+
   function enhance(input) {
     if (input.dataset.codeSlotsReady === '1' && input.codeSlots) return input.codeSlots;
 
     const declared = Number.parseInt(input.dataset.codeSlots, 10);
     const length = Math.min(MAX_LENGTH, Math.max(1, Number.isFinite(declared) ? declared : 7));
-    const settleMs = prefersReducedMotion() ? 0 : SETTLE_MS;
+    const reduced = prefersReducedMotion();
+    const settleMs = reduced ? 0 : SETTLE_MS;
 
     const root = document.createElement('div');
     root.className = 'cs';
     root.style.setProperty('--cs-length', String(length));
     root.style.setProperty('--cs-settle', `${settleMs}ms`);
+
+    // Plaque de verre : halo pointeur, cases, éclat de succès.
+    const deck = document.createElement('div');
+    deck.className = 'cs-deck';
+
+    const aura = document.createElement('span');
+    aura.className = 'cs-aura';
+    aura.setAttribute('aria-hidden', 'true');
+    deck.appendChild(aura);
+
+    const flare = document.createElement('span');
+    flare.className = 'cs-flare';
+    flare.setAttribute('aria-hidden', 'true');
+    deck.appendChild(flare);
 
     const row = document.createElement('div');
     row.className = 'cs-row';
@@ -80,16 +107,32 @@
     for (let index = 0; index < length; index += 1) {
       const slot = document.createElement('div');
       slot.className = 'cs-slot';
+
       const digit = document.createElement('span');
       digit.className = 'cs-digit';
+
+      const ring = document.createElement('span');
+      ring.className = 'cs-ring';
+
       slot.appendChild(digit);
+      slot.appendChild(ring);
       row.appendChild(slot);
-      slots.push({ slot, digit, char: '', timer: 0 });
+      slots.push({ slot, digit, ring, char: '', timer: 0 });
     }
 
+    deck.appendChild(row);
+
+    // Fine barre de progression de la saisie.
+    const progress = document.createElement('span');
+    progress.className = 'cs-progress is-empty';
+    progress.setAttribute('aria-hidden', 'true');
+    const progressBar = document.createElement('i');
+    progress.appendChild(progressBar);
+
     input.parentNode.insertBefore(root, input);
-    root.appendChild(row);
+    root.appendChild(deck);
     root.appendChild(input);
+    root.appendChild(progress);
 
     input.classList.add('cs-native');
     input.dataset.codeSlotsReady = '1';
@@ -171,23 +214,41 @@
         state.slot.classList.toggle('is-active', index === activeIndex);
       });
 
+      progress.style.setProperty('--cs-progress', `${Math.round((value.length / length) * 100)}%`);
+      progress.classList.toggle('is-empty', value.length === 0);
+      root.classList.toggle('cs--empty', value.length === 0);
+      root.classList.toggle('cs--complete', value.length === length);
       root.classList.toggle('cs--disabled', input.disabled);
     };
 
+    const restartFlare = () => {
+      if (reduced) return;
+      flare.classList.remove('is-on');
+      void flare.offsetWidth;
+      flare.classList.add('is-on');
+    };
+
     const setStatus = (next, options = {}) => {
-      status = next === 'error' || next === 'success' ? next : 'idle';
+      status = ['error', 'success', 'loading'].includes(next) ? next : 'idle';
       root.classList.toggle('cs--error', status === 'error');
       root.classList.toggle('cs--success', status === 'success');
+      root.classList.toggle('cs--loading', status === 'loading');
+      progress.classList.toggle('is-error', status === 'error');
+      progress.classList.toggle('is-success', status === 'success');
       input.setAttribute('aria-invalid', status === 'error' ? 'true' : 'false');
+
       if (statusTimer) {
         window.clearTimeout(statusTimer);
         statusTimer = 0;
       }
+
       if (status === 'error') {
         // Relance la secousse même si deux erreurs s'enchaînent.
         root.classList.remove('cs--shake');
         void root.offsetWidth;
         root.classList.add('cs--shake');
+        flare.classList.remove('is-on');
+        vibrate([26, 42, 26]);
         // Le code est complet et faux: on sélectionne tout pour que la
         // prochaine frappe remplace, au lieu de buter sur maxlength. Pas sur
         // écran tactile: la sélection native y ouvre des poignées inutiles.
@@ -201,7 +262,15 @@
       } else {
         root.classList.remove('cs--shake');
       }
-      if (status !== 'idle' && options.persist !== true) {
+
+      if (status === 'success') {
+        restartFlare();
+        vibrate([10, 26, 10, 26, 16]);
+      }
+
+      // 'loading' reste affiché jusqu'au prochain état ; les autres retombent
+      // seuls, sauf demande explicite de persistance.
+      if ((status === 'error' || status === 'success') && options.persist !== true) {
         statusTimer = window.setTimeout(
           () => setStatus('idle'),
           status === 'error' ? ERROR_MS : SUCCESS_MS
@@ -220,6 +289,7 @@
       const value = normalize(input.value, length);
       if (value.length !== length || value === lastComplete) return;
       lastComplete = value;
+      vibrate(9);
       input.dispatchEvent(
         new CustomEvent('codeslots:complete', { bubbles: true, detail: { code: value } })
       );
@@ -280,6 +350,45 @@
       if (event.target === input) return;
       focusInput();
     });
+
+    // Inclinaison 3D + halo qui suit le pointeur (souris uniquement).
+    if (!reduced && canHover()) {
+      let pointerFrame = 0;
+      let lastX = 0;
+      let lastY = 0;
+
+      const applyPointer = () => {
+        pointerFrame = 0;
+        const rect = root.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const px = Math.min(1, Math.max(0, (lastX - rect.left) / rect.width));
+        const py = Math.min(1, Math.max(0, (lastY - rect.top) / rect.height));
+        root.style.setProperty('--cs-mx', `${(px * 100).toFixed(1)}%`);
+        root.style.setProperty('--cs-my', `${(py * 100).toFixed(1)}%`);
+        deck.style.setProperty('--cs-ry', `${((px - 0.5) * 7).toFixed(2)}deg`);
+        deck.style.setProperty('--cs-rx', `${((0.5 - py) * 5).toFixed(2)}deg`);
+      };
+
+      root.addEventListener(
+        'pointermove',
+        (event) => {
+          lastX = event.clientX;
+          lastY = event.clientY;
+          if (pointerFrame) return;
+          pointerFrame = window.requestAnimationFrame(applyPointer);
+        },
+        { passive: true }
+      );
+
+      root.addEventListener(
+        'pointerleave',
+        () => {
+          deck.style.setProperty('--cs-ry', '0deg');
+          deck.style.setProperty('--cs-rx', '0deg');
+        },
+        { passive: true }
+      );
+    }
 
     Object.defineProperty(input, 'codeSlots', {
       configurable: true,

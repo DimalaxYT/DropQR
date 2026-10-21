@@ -30,8 +30,8 @@ const initReceivePage = () => {
     else input.value = value;
   }
 
-  function setCodeStatus(status) {
-    if (input.codeSlots) input.codeSlots.setStatus(status);
+  function setCodeStatus(status, options) {
+    if (input.codeSlots) input.codeSlots.setStatus(status, options);
   }
 
   function setStatus(message, type = '') {
@@ -62,7 +62,7 @@ const initReceivePage = () => {
     // Cascade quand le code vient de l'extérieur (?code=..., QR): les cases se
     // remplissent une à une, comme dans le composant d'origine.
     setCode(normalized, { cascade: autoOpen });
-    setCodeStatus('idle');
+    setCodeStatus('loading');
     result.classList.add('hidden');
     hideVideo();
     setStatus('Recherche du fichier…');
@@ -94,7 +94,7 @@ const initReceivePage = () => {
       }
 
       result.classList.remove('hidden');
-      setCodeStatus('success');
+      setCodeStatus('success', { persist: true });
       setStatus(autoOpen ? 'QR code reconnu. Tu peux lire ou télécharger.' : 'Fichier trouvé.', 'success');
     } catch (error) {
       currentPayload = null;

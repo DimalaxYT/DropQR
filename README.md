@@ -433,13 +433,16 @@ La page classique reste accessible : `/upload`, `/receive`, `/dashboard`, `/help
 
 ## Version 1.13.0
 
-Saisie du code en **Code Slots** sur la page Recevoir (PC et téléphone) :
+Saisie du code en **Code Slots « neon deck »** sur la page Recevoir (PC et téléphone) :
 
-- rangée de 7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots) — **sans React ni dépendance** : `public/assets/code-slots.js` + `public/assets/code-slots.css`, ~10 Ko, chargés en same-origin (CSP `script-src 'self'` respectée) ;
-- chaque caractère « atterrit » avec un léger rebond, le curseur clignote dans la case active, une cascade de 20 ms sépare les caractères qui arrivent d’un coup (collage, `?code=…`), et les caractères effacés « tombent » avant de vider la case ;
-- états **erreur** (teinte danger + secousse, les caractères restent pour correction) et **succès** (halo vert), en complément du message texte déjà présent ;
-- saisie instantanée : le code est mis en majuscules, les séparateurs et les liens collés (`…/receive?code=Q7R4M2K`, `/c/Q7R4M2K`) sont nettoyés, et la recherche se lance automatiquement dès la 7ᵉ case remplie ;
+- rangée de 7 cases posée sur une **plaque de verre** à bordure conique animée, adaptation très libre du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots) — **sans React ni dépendance** : `public/assets/code-slots.js` + `public/assets/code-slots.css`, chargés en same-origin (CSP `script-src 'self'` respectée) ;
+- chaque caractère **atterrit en 3D** avec rebond, blur et onde circulaire, un reflet balaie la case ; les caractères effacés basculent et tombent avant de vider la case ; une cascade de 20 ms sépare les caractères qui arrivent d’un coup (collage, `?code=…`) ;
+- **micro-interactions** : tilt 3D + halo lumineux qui suivent le pointeur (souris uniquement), curseur qui pulse dans la case active, cases qui « respirent » en vague quand le champ est vide et actif ;
+- **barre de progression** de la saisie sous les cases, qui change de couleur selon l’état ;
+- états : **recherche** (balayage lumineux + bordure qui tourne), **erreur** (teinte rouge, glitch chromatique, secousse, code conservé pour correction) et **succès** (cascade verte, halo), en complément du message texte déjà présent ;
+- **retour haptique** sur téléphone (vibration courte à chaque case, motif d’erreur/succès) ;
+- saisie instantanée : majuscules forcées, séparateurs et liens collés (`…/receive?code=Q7R4M2K`, `/c/Q7R4M2K`) nettoyés, recherche lancée automatiquement à la 7ᵉ case ;
 - le vrai `<input>` reste dans le DOM (label, clavier, collage, `aria-invalid`, `role="status"` sur le message) : sans JavaScript, le champ s’affiche et fonctionne exactement comme avant ;
 - formulaire de réception rapide de l’accueil téléphone équipé du même composant ;
-- `prefers-reduced-motion` : animations et secousse désactivées ;
+- `prefers-reduced-motion` : animations, tilt, scan et secousse désactivés ;
 - version portée à **1.13.0** (`/api/health`).
