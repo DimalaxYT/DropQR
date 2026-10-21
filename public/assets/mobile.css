@@ -16,18 +16,10 @@ html.view-mobile { scroll-behavior: auto; }
 .m-body::before { animation: none; inset: -10vmax; }
 .m-body::after { opacity: .35; }
 
-/* ---------- En-tête compact ---------- */
-.m-top.nv {
-  padding: calc(10px + var(--safe-t)) var(--m-pad) 10px;
-  background: rgba(9, 10, 12, .72);
-  -webkit-backdrop-filter: blur(16px) saturate(1.1); backdrop-filter: blur(16px) saturate(1.1);
-  border-bottom-color: var(--hairline);
-}
-.m-top.nv.scrolled { padding-top: calc(10px + var(--safe-t)); padding-bottom: 10px; }
-.m-top .nv-brand { font-size: 16px; }
-.m-top .discord-auth-btn { min-height: 34px; padding: 6px 12px; font-size: 10px; }
-.m-top .discord-chip { min-height: 34px; }
-.m-top .discord-chip-name { display: none; }
+/* ---------- En-tête compact ----------
+   Le rendu de la barre (verre, logo, CTA, progression) vit dans nav.css, qui
+   est chargée après cette feuille. On ne garde ici que les marges de sécurité. */
+.m-top.nv { padding-top: calc(8px + var(--safe-t)); }
 
 /* ---------- Conteneur ---------- */
 .m-shell.shell {

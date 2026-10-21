@@ -11,6 +11,7 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
 - `/help` : aide, déploiement et explication du QR code dans la preview Arena
 - `/mentions` : mentions légales, confidentialité et données traitées
+- **logo et icônes** : `favicon.ico`, `favicon.svg`, `apple-touch-icon.png`, `icon-192/512.png` et `site.webmanifest` (installable, raccourcis Envoyer / Recevoir)
 - `/t/:id` : page publique de téléchargement
 
 ## Version PC / version téléphone (détection automatique)
@@ -486,3 +487,25 @@ Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
 ### Divers
 
 - version portée à **1.15.0** (`/api/health`) ; feuilles et scripts versionnés (`nav.css?v=1`, `receive.css?v=2`, `receive.js?v=10`, `site.js?v=17`).
+
+## Version 1.16.0
+
+**Logo DropQR** et nouvelle passe sur Recevoir.
+
+### Le logo
+
+- dessin original : une **goutte** en dégradé violet → bleu (le « drop » de DropQR) dont le cœur est un **motif QR** (trois modules + un point), sur une tuile sombre arrondie avec halo et reflet ;
+- trois déclinaisons : `assets/logo.svg` (statique), `assets/logo-anim.svg` (modules qui clignotent doucement + halo qui respire, respecté uniquement dans la barre de navigation), et les rasterisations d’icônes ;
+- **favicon complet** : `favicon.ico` (16/32/48), `favicon.svg` (navigateurs modernes), `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png`, plus `site.webmanifest` (nom, couleurs, mode standalone, raccourcis *Envoyer* / *Recevoir*) — DropQR peut désormais être installé comme application ;
+- routes serveur explicites pour ces fichiers (types MIME et cache corrects, `manifest-src 'self'` ajouté à la CSP) ;
+- le logo remplace l’ancienne marque dessinée en CSS dans la barre (survol : légère rotation + halo), apparaît dans le pied de page et comme **emblème** à côté du libellé de section sur `/receive` ; `alt=""` + `aria-hidden` car le mot-symbole texte porte déjà le nom.
+
+### Page Recevoir
+
+- emblème de marque encadré à côté de « 03 / RECEIVE », avec liseré dégradé ;
+- pied de page aligné verticalement avec le logo.
+
+### Nettoyage
+
+- les anciennes règles de barre de navigation, de menu burger et de boutons `nv-app` ont été retirées de `pages.css`, `landing.css` et `mobile.css` : tout est désormais dans `nav.css`, sans doublons qui se battaient en cascade ;
+- version portée à **1.16.0** (`/api/health`), assets versionnés (`nav.css?v=2`, `pages.css?v=5`, `mobile.css?v=3`, `landing.css?v=5`, `receive.css?v=3`).

@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1065,6 +1065,8 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   // L'interface n'utilise que des scripts/feuilles same-origin et des QR en data: URL.
   // Les attributs style="..." du HTML imposent 'unsafe-inline' pour les styles.
+  // img-src data: est indispensable : les QR codes du tableau de bord et des pages
+  // d'envoi sont des data: URLs générées côté navigateur.
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self'",
@@ -1073,6 +1075,7 @@ app.use((req, res, next) => {
     "media-src 'self' blob:",
     "connect-src 'self'",
     "font-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'"
@@ -1096,6 +1099,32 @@ app.use('/assets', (req, res, next) => {
   lastModified: true,
   maxAge: '1d'
 }));
+
+// ---------------------------------------------------------------------------
+// Icônes et manifeste (fichiers statiques servis depuis la racine publique)
+// ---------------------------------------------------------------------------
+// On les déclare explicitement plutôt que d'exposer tout `public/` : les pages
+// HTML passent par sendPage (détection PC/téléphone) et ne doivent jamais être
+// servies deux fois, avec deux comportements différents.
+const ROOT_STATIC_FILES = {
+  '/favicon.ico': { file: 'favicon.ico', type: 'image/x-icon', maxAge: 604800 },
+  '/favicon.svg': { file: 'favicon.svg', type: 'image/svg+xml', maxAge: 604800 },
+  '/apple-touch-icon.png': { file: 'apple-touch-icon.png', type: 'image/png', maxAge: 2592000 },
+  '/icon-192.png': { file: 'icon-192.png', type: 'image/png', maxAge: 2592000 },
+  '/icon-512.png': { file: 'icon-512.png', type: 'image/png', maxAge: 2592000 },
+  '/site.webmanifest': { file: 'site.webmanifest', type: 'application/manifest+json; charset=utf-8', maxAge: 3600 }
+};
+
+Object.entries(ROOT_STATIC_FILES).forEach(([route, meta]) => {
+  app.get(route, (_req, res, next) => {
+    const filePath = path.join(PUBLIC_DIR, meta.file);
+    res.setHeader('Cache-Control', `public, max-age=${meta.maxAge}`);
+    res.type(meta.type);
+    res.sendFile(filePath, (error) => {
+      if (error) next(error);
+    });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Détection automatique PC / téléphone
@@ -1945,7 +1974,7 @@ function publicTransferPayload(req, meta) {
 function renderSiteHeader() {
   return `  <header class="nv" id="nv">
     <div class="nv-bar">
-      <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span class="nv-word">DropQR</span></a>
+      <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
         <a class="nv-link" href="/#product">Product</a>
         <a class="nv-link" href="/#how">How it works</a>
@@ -1965,7 +1994,7 @@ function renderSiteHeader() {
 
 function renderSiteFooter() {
   return `    <footer class="site-footer">
-      <span class="foot-brand">DropQR</span>
+      <span class="foot-brand"><img src="/assets/logo.svg" width="22" height="22" alt="" aria-hidden="true" loading="lazy" decoding="async">DropQR</span>
       <nav aria-label="App">
         <a href="/upload">Upload</a>
         <a href="/receive">Receive</a>
@@ -1992,8 +2021,12 @@ function renderSharePage(req, meta) {
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>Télécharger ${escapeHtml(meta.originalName)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=4">
-  <link rel="stylesheet" href="/assets/nav.css?v=1">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=2">
 </head>
 <body>
 ${renderSiteHeader()}
@@ -2034,8 +2067,8 @@ function renderMessagePage(title, message) {
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=4">
-  <link rel="stylesheet" href="/assets/nav.css?v=1">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=2">
 </head>
 <body>
 ${renderSiteHeader()}

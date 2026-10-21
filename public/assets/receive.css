@@ -47,6 +47,53 @@
   to { opacity: .68; transform: scale(1.03) translateY(-6px); }
 }
 
+/* ---------- Emblème + libellé de section ---------- */
+.rx-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.rx-emblem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  flex: none;
+  border-radius: 18px;
+  border: 1px solid rgba(139, 124, 255, .28);
+  background:
+    radial-gradient(80% 80% at 50% 0%, rgba(139, 124, 255, .22), transparent 70%),
+    rgba(255, 255, 255, .025);
+  box-shadow:
+    0 18px 40px -22px rgba(139, 124, 255, .95),
+    inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+.rx-emblem::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(150deg, rgba(139, 124, 255, .5), transparent 55%, rgba(91, 140, 255, .35));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: .75;
+}
+
+.rx-emblem img {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  box-shadow: 0 8px 20px -10px rgba(139, 124, 255, 1);
+}
+
 .rx-title {
   margin: 16px 0 14px;
   font-size: clamp(2.3rem, 4.4vw, 3.6rem);
@@ -328,15 +375,25 @@ kbd {
 .rx-sonar-core {
   display: grid;
   place-items: center;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  border: 1px solid rgba(139, 124, 255, .5);
-  background: radial-gradient(circle at 35% 30%, rgba(139, 124, 255, .5), rgba(91, 140, 255, .16) 60%, transparent 72%);
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 0 44px rgba(139, 124, 255, .55), inset 0 0 22px rgba(139, 124, 255, .35);
+  width: 62px;
+  height: 62px;
+  border-radius: 20px;
+  border: 1px solid rgba(139, 124, 255, .4);
+  background:
+    radial-gradient(circle at 35% 25%, rgba(139, 124, 255, .35), rgba(91, 140, 255, .1) 60%, transparent 74%),
+    rgba(10, 11, 16, .6);
+  box-shadow:
+    0 0 44px rgba(139, 124, 255, .5),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
   animation: rx-core 3.4s ease-in-out infinite;
+}
+
+.rx-sonar-core img {
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  box-shadow: 0 8px 22px -10px rgba(139, 124, 255, 1);
 }
 
 @keyframes rx-core {
@@ -848,6 +905,8 @@ html.rx-scan-open body { overflow: hidden; }
 }
 
 .m-body .rx-glow { display: none; }
+.m-body .rx-emblem { width: 48px; height: 48px; border-radius: 15px; }
+.m-body .rx-emblem img { width: 36px; height: 36px; border-radius: 11px; }
 .m-body .rx-title { font-size: clamp(1.9rem, 8vw, 2.4rem); margin: 10px 0 10px; }
 .m-body .rx-lead { font-size: 14px; }
 .m-body .rx-form { margin-top: 16px; gap: 12px; }

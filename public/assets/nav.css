@@ -115,6 +115,27 @@
   transition: color .25s ease;
 }
 
+/* Le logo (SVG animé) remplace l'ancienne marque dessinée en CSS. */
+.nv-logo {
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  box-shadow:
+    0 6px 16px -8px rgba(139, 124, 255, .9),
+    0 0 0 1px rgba(236, 233, 226, .07);
+  transition: transform .5s var(--ease-silk), box-shadow .4s ease, filter .4s ease;
+}
+
+.nv-brand:hover .nv-logo {
+  transform: rotate(-5deg) scale(1.06);
+  box-shadow:
+    0 10px 24px -8px rgba(139, 124, 255, 1),
+    0 0 0 1px rgba(139, 124, 255, .45);
+  filter: saturate(1.15);
+}
+
 .nv-brand .mark {
   position: relative;
   width: 30px;
@@ -532,6 +553,7 @@
 
   .nv.scrolled .nv-bar { height: 50px; }
   .nv-brand { font-size: 15px; gap: 8px; }
+  .nv-logo { width: 27px; height: 27px; border-radius: 8px; }
   .nv-brand .mark { width: 27px; height: 27px; border-radius: 8px; }
   .nv-brand .mark::after { inset: 7px; }
 
@@ -574,6 +596,7 @@
 .nv.m-top .nv-burger { display: none; }
 .nv.m-top .nv-right { margin-left: auto; }
 .nv.m-top .nv-brand { font-size: 15.5px; }
+.nv.m-top .nv-logo { width: 28px; height: 28px; border-radius: 8px; }
 .nv.m-top .nv-brand .mark { width: 27px; height: 27px; border-radius: 8px; }
 .nv.m-top .nv-brand .mark::after { inset: 7px; }
 .nv.m-top .nv-cta { height: 36px; padding: 0 4px 0 12px; font-size: 12px; border-radius: 11px; }

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="DropQR">
+  <defs>
+    <linearGradient id="la-tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d1f2e"/><stop offset="1" stop-color="#090a11"/>
+    </linearGradient>
+    <linearGradient id="la-drop" x1="0.2" y1="0" x2="0.8" y2="1">
+      <stop offset="0" stop-color="#bdb4ff"/><stop offset="0.45" stop-color="#8b7cff"/><stop offset="1" stop-color="#5b8cff"/>
+    </linearGradient>
+    <radialGradient id="la-glow" cx="0.5" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#8b7cff" stop-opacity="0.55"/><stop offset="1" stop-color="#8b7cff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="la-sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.5"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="15" fill="url(#la-tile)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15" fill="none" stroke="#33354b" stroke-width="1.5"/>
+  <ellipse cx="32" cy="30" rx="21" ry="20" fill="url(#la-glow)">
+    <animate attributeName="opacity" values="0.55;1;0.55" dur="4.8s" repeatCount="indefinite"/>
+  </ellipse>
+  <path d="M32 8.6c-6.2 8-14.2 16.4-14.2 25.6a14.2 14.2 0 0 0 28.4 0C46.2 25 38.2 16.6 32 8.6Z" fill="url(#la-drop)"/>
+  <path d="M25.4 22.2c-2.4 3.2-5 6.6-6.2 10" fill="none" stroke="url(#la-sheen)" stroke-width="2.2" stroke-linecap="round"/>
+  <g fill="#0a0b12">
+    <rect x="25.3" y="28.2" width="6.2" height="6.2" rx="1.5">
+      <animate attributeName="opacity" values="1;1;0.25;1" keyTimes="0;0.55;0.72;0.9" dur="5.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="33.1" y="28.2" width="6.2" height="6.2" rx="1.5">
+      <animate attributeName="opacity" values="1;0.25;1" keyTimes="0;0.4;0.62" dur="5.2s" repeatCount="indefinite"/>
+    </rect>
+    <rect x="25.3" y="36" width="6.2" height="6.2" rx="1.5">
+      <animate attributeName="opacity" values="1;0.2;1" keyTimes="0;0.3;0.55" dur="5.2s" repeatCount="indefinite"/>
+    </rect>
+  </g>
+  <circle cx="36.2" cy="39.1" r="3" fill="#0a0b12"/>
+</svg>

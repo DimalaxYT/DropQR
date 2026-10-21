@@ -4,19 +4,23 @@
   <meta charset="utf-8">
   <script src="/assets/device.js?v=1"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <meta name="description" content="Recevoir un fichier DropQR : tape les 7 caractères du code ou scanne le QR. Le fichier apparaît avec sa taille, son expiration et son bouton de téléchargement.">
   <title>Recevoir — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=4">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
   <link rel="stylesheet" href="/assets/code-slots.css?v=2">
-  <link rel="stylesheet" href="/assets/receive.css?v=2">
-  <link rel="stylesheet" href="/assets/nav.css?v=1">
+  <link rel="stylesheet" href="/assets/receive.css?v=3">
+  <link rel="stylesheet" href="/assets/nav.css?v=2">
 </head>
 <body>
   <header class="nv" id="nv">
     <div class="nv-bar">
-      <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span class="nv-word">DropQR</span></a>
+      <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
         <a class="nv-link" href="/#product">Product</a>
         <a class="nv-link" href="/#how">How it works</a>
@@ -40,7 +44,12 @@
       <!-- ================= Console de saisie ================= -->
       <section class="rx-stage" aria-labelledby="rxTitle">
         <div class="rx-glow" aria-hidden="true"></div>
-        <p class="page-code">03 / RECEIVE</p>
+        <div class="rx-topline">
+          <p class="page-code">03 / RECEIVE</p>
+          <span class="rx-emblem" aria-hidden="true">
+            <img src="/assets/logo-anim.svg" width="44" height="44" alt="" decoding="async">
+          </span>
+        </div>
         <h1 class="rx-title" id="rxTitle">Le code <span class="thin">ouvre</span> le passage.</h1>
         <p class="lead rx-lead">Sept caractères, ou un QR code. Le fichier apparaît ici, prêt à être récupéré — tant qu'il n'a pas expiré.</p>
 
@@ -101,7 +110,7 @@
             <span class="rx-sonar-ring"></span>
             <span class="rx-sonar-ring"></span>
             <span class="rx-sonar-ring"></span>
-            <span class="rx-sonar-core">↓</span>
+            <span class="rx-sonar-core"><img src="/assets/logo.svg" width="30" height="30" alt="" decoding="async"></span>
           </div>
           <h2>En attente d'un code.</h2>
           <p class="rx-empty-text">Dès qu'un transfert est trouvé, tu verras le nom du fichier, sa taille, le temps restant et un bouton de téléchargement.</p>
@@ -167,7 +176,7 @@
     </main>
 
     <footer class="site-footer">
-      <span class="foot-brand">DropQR</span>
+      <span class="foot-brand"><img src="/assets/logo.svg" width="22" height="22" alt="" aria-hidden="true" loading="lazy" decoding="async">DropQR</span>
       <nav aria-label="App">
         <a href="/upload">Upload</a>
         <a href="/receive" class="active" aria-current="page">Receive</a>
