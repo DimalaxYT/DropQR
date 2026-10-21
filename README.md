@@ -534,3 +534,30 @@ Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
 - les blocs de gestion de la barre ont été **retirés de `site.js` et de `landing3d.js`** : plus de doublons d’écouteurs ni de comportement qui différait d’une page à l’autre ; le balisage reste identique partout (pages statiques, rendu serveur, page de partage) ;
 - `assets/nav.js` ajouté au contrôle `npm run check` ;
 - version portée à **1.17.0** (`/api/health`), assets versionnés (`nav.css?v=3`, `site.js?v=17`, `nav.js?v=1`).
+
+## Version 1.17.1
+
+**Passe de vitesse et de fiabilité sur la barre de navigation**, après un audit page par page (desktop, version téléphone, pages rendues par le serveur, 404).
+
+### Ce qui rendait la barre lente
+
+- **préchargement trop large** : `site.js` réchauffait *tous* les liens internes de la page (9 requêtes, chacune un rendu HTML complet) juste après le chargement, pendant que l’utilisateur commençait à cliquer ; il se limite maintenant aux liens de la barre, espacés de 120 ms ;
+- **requêtes dupliquées** : un clic pendant un préchargement relançait une requête ; un cache de promesses en vol (`pjaxInflight`) fait que le clic réutilise la requête déjà partie ;
+- **aucun retour avant la fin du réseau** : la ligne de progression passe désormais en **balayage animé dès le clic** (`html.pjax-loading`), et au-delà de 2,5 s la navigation classique du navigateur prend le relais plutôt que de laisser la page figée ;
+- **cache des assets contradictoire** : le middleware global posait `Pragma: no-cache` / `Expires: 0`, respectés par certains proxys malgré le `Cache-Control` long ; ces en-têtes sont retirés pour `/assets` et les icônes, les feuilles et scripts sont donc réellement réutilisés d’une page à l’autre ;
+- **flou plus cher que nécessaire** : `backdrop-filter: blur(20px) saturate(1.4)` sur une barre fixe au-dessus d’un fond animé, ramené à `blur(12px)` et promu sur son propre calque ;
+- **état courant calculé en JS** : la barre restait « neutre » le temps de mesurer les liens. L’état courant est maintenant peint en CSS dès le premier rendu, puis la pastille prend le relais quand elle est positionnée (`html.nv-js`).
+
+### Bugs corrigés
+
+- la **landing** arrivait avec **trois liens marqués courants** (`Product`, `How it works`, `FAQ`) : un seul au plus désormais, et `aria-current="location"` pour les ancres de section ;
+- la **pastille disparaissait sous la chip *Receive*** (remplissage dégradé opaque) : elle n’y va plus du tout ;
+- **pastille lente** : transitions ramenées à 220 ms, et premier placement sans animation (`is-instant`) ;
+- **mesures refaites à chaque survol** (forçage de mise en page) : positions mises en cache, invalidées au redimensionnement, au chargement des polices et à chaque navigation ;
+- règles de menu **héritées de `pages.css`** supprimées : le panneau n’est plus décrit par deux feuilles concurrentes ;
+- **cohérence du balisage** : `aria-current` déjà présent dans le HTML de `/receive` et `/help` (utile sans JavaScript), `is-current` retiré de la landing ;
+- après un **PJAX**, l’état escamoté/ouvert de la barre est nettoyé avant réinstallation (la barre ne peut plus rester cachée sur la nouvelle page).
+
+### Divers
+
+- version portée à **1.17.1** (`/api/health`), assets versionnés (`nav.css?v=4`, `nav.js?v=2`, `site.js?v=18`).

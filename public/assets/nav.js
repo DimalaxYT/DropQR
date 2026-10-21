@@ -10,15 +10,13 @@
 //   - la progression de lecture et l'escamotage de la barre au défilement ;
 //   - le menu en panneau sur petit écran : scrim, focus piégé, fermeture propre.
 //
-// Toutes les recherches d'éléments sont refaites à chaque initialisation : le
-// contenu de #nv est remplacé par le PJAX, les anciens nœuds disparaissent.
+// Contrainte de vitesse : la barre doit répondre au premier survol et au
+// premier clic. Les positions des liens sont donc mesurées une seule fois puis
+// mises en cache (invalidées au redimensionnement / chargement des polices),
+// et l'état courant est déjà peint en CSS avant l'exécution de ce fichier.
 
 (() => {
   let controller = null;
-
-  // Marqueur pour le CSS : avec JS la pastille glisse, sans JS le survol garde
-  // un fond statique (voir nav.css).
-  document.documentElement.classList.add('nv-js');
 
   const media = (query) => {
     try {
@@ -52,28 +50,58 @@
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
     const panelMode = () => media('(max-width: 1040px)');
 
-    // ---------------------------------------------------------------------
-    // Pastille glissante
-    // ---------------------------------------------------------------------
-    let pillTarget = null;
+    // Après un remplacement PJAX, le conteneur #nv survit : on efface les états
+    // laissés par la page précédente (barre escamotée, panneau ouvert).
+    nv.classList.remove('is-hidden', 'open');
+    document.documentElement.classList.remove('nav-open');
 
-    const movePill = (target) => {
+    // Repère pour les technologies d'assistance : le bouton menu pilote la liste.
+    if (linksBox && !linksBox.id) linksBox.id = 'nv-links';
+    if (burger && linksBox) burger.setAttribute('aria-controls', linksBox.id);
+
+    // ---------------------------------------------------------------------
+    // Pastille glissante (métriques mesurées une fois, puis mises en cache)
+    // ---------------------------------------------------------------------
+    let metrics = null;
+    let hovered = null;
+
+    const measure = () => {
+      metrics = null;
       if (!pill || !linksBox) return;
-      if (!target || panelMode()) {
+      const box = linksBox.getBoundingClientRect();
+      const next = new Map();
+      items.forEach((link) => {
+        const rect = link.getBoundingClientRect();
+        if (rect.width) next.set(link, { x: rect.left - box.left, w: rect.width });
+      });
+      metrics = next;
+    };
+
+    // La chip « Receive » a son propre remplissage : la pastille dessous serait
+    // invisible (et donnerait l'impression qu'elle a disparu).
+    const pillable = (link) => Boolean(link) && !link.classList.contains('nv-chip');
+
+    const paintPill = (target, instant) => {
+      if (!pill || !linksBox) return;
+      if (!pillable(target) || panelMode()) {
         pill.classList.remove('is-visible');
-        pillTarget = null;
         return;
       }
-      const boxRect = linksBox.getBoundingClientRect();
-      const rect = target.getBoundingClientRect();
-      if (!rect.width) return;
-      pillTarget = target;
-      pill.style.setProperty('--nv-pill-x', `${(rect.left - boxRect.left).toFixed(1)}px`);
-      pill.style.setProperty('--nv-pill-w', `${rect.width.toFixed(1)}px`);
+      if (!metrics) measure();
+      const spot = metrics && metrics.get(target);
+      if (!spot) {
+        pill.classList.remove('is-visible');
+        return;
+      }
+      if (instant) pill.classList.add('is-instant');
+      pill.style.setProperty('--nv-pill-x', `${spot.x.toFixed(1)}px`);
+      pill.style.setProperty('--nv-pill-w', `${spot.w.toFixed(1)}px`);
       pill.classList.add('is-visible');
+      if (instant) window.requestAnimationFrame(() => pill.classList.remove('is-instant'));
     };
 
     const currentLink = () => items.find((link) => link.classList.contains('is-current')) || null;
+    const returnPill = () => paintPill(hovered || currentLink());
 
     // ---------------------------------------------------------------------
     // Lien courant
@@ -82,10 +110,20 @@
       items.forEach((link) => {
         const isCurrent = link === target;
         link.classList.toggle('is-current', isCurrent);
-        if (isCurrent) link.setAttribute('aria-current', 'page');
-        else link.removeAttribute('aria-current');
+        if (!isCurrent) {
+          link.removeAttribute('aria-current');
+          return;
+        }
+        // Une ancre de section n'est pas une « page » : aria-current="location".
+        let isAnchor = false;
+        try {
+          isAnchor = Boolean(new URL(link.href, window.location.href).hash);
+        } catch (_error) {
+          isAnchor = false;
+        }
+        link.setAttribute('aria-current', isAnchor ? 'location' : 'page');
       });
-      if (!pillTarget) movePill(target);
+      if (!hovered) paintPill(target);
     };
 
     const resolvePageCurrent = () => {
@@ -114,21 +152,31 @@
 
     markCurrent(resolvePageCurrent());
 
+
     // ---------------------------------------------------------------------
     // Survol / focus : la pastille suit le pointeur, revient au lien courant
     // ---------------------------------------------------------------------
-    const returnPill = () => movePill(currentLink());
-
     items.forEach((link) => {
-      link.addEventListener('pointerenter', () => movePill(link), { passive: true, signal });
-      link.addEventListener('focus', () => movePill(link), { signal });
+      link.addEventListener('pointerenter', () => {
+        hovered = link;
+        paintPill(link);
+      }, { passive: true, signal });
+      link.addEventListener('focus', () => {
+        hovered = link;
+        paintPill(link);
+      }, { signal });
       link.addEventListener('click', () => setOpen(false), { signal });
     });
 
     if (linksBox) {
-      linksBox.addEventListener('pointerleave', returnPill, { passive: true, signal });
+      linksBox.addEventListener('pointerleave', () => {
+        hovered = null;
+        returnPill();
+      }, { passive: true, signal });
       linksBox.addEventListener('focusout', (event) => {
-        if (!linksBox.contains(event.relatedTarget)) returnPill();
+        if (linksBox.contains(event.relatedTarget)) return;
+        hovered = null;
+        returnPill();
       }, { signal });
     }
 
@@ -189,10 +237,6 @@
 
     let open = false;
 
-    // Repère pour les technologies d'assistance : le bouton menu pilote la liste.
-    if (linksBox && !linksBox.id) linksBox.id = 'nv-links';
-    if (burger && linksBox) burger.setAttribute('aria-controls', linksBox.id);
-
     const lockScroll = (lock) => {
       if (lock) {
         const sbw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
@@ -218,7 +262,7 @@
           const first = items[0];
           // Si le panneau a été refermé entre-temps, on ne déplace pas le focus.
           if (open && first && panelMode()) first.focus({ preventScroll: true });
-        }, 120);
+        }, 70);
       } else if (options.restoreFocus && burger) {
         burger.focus({ preventScroll: true });
       }
@@ -267,15 +311,6 @@
       { signal }
     );
 
-    window.addEventListener(
-      'resize',
-      () => {
-        if (!panelMode() && open) setOpen(false);
-        movePill(pillTarget || currentLink());
-      },
-      { passive: true, signal }
-    );
-
     // ---------------------------------------------------------------------
     // Défilement : progression, compactage, escamotage
     // ---------------------------------------------------------------------
@@ -322,33 +357,57 @@
 
     window.addEventListener('scroll', requestScroll, { passive: true, signal });
     window.addEventListener('resize', requestScroll, { passive: true, signal });
+
+    // Les largeurs changent au redimensionnement ou quand la police arrive :
+    // on remesure alors la pastille (jamais pendant un survol).
+    let resizing = false;
+    const refreshPill = () => {
+      resizing = false;
+      measure();
+      if (!hovered) paintPill(currentLink(), true);
+    };
+    const requestRefresh = () => {
+      if (resizing) return;
+      resizing = true;
+      window.requestAnimationFrame(refreshPill);
+    };
+
+    window.addEventListener('resize', requestRefresh, { passive: true, signal });
     nv.addEventListener('focusin', () => setHidden(false), { signal });
+
+    if (bar && 'ResizeObserver' in window) {
+      const ro = new ResizeObserver(requestRefresh);
+      ro.observe(bar);
+      signal.addEventListener('abort', () => ro.disconnect(), { once: true });
+    }
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        if (!signal.aborted) requestRefresh();
+      }).catch(() => {});
+    }
 
     // ---------------------------------------------------------------------
     // Démarrage
     // ---------------------------------------------------------------------
-    // Après un remplacement PJAX, le conteneur #nv survit : on efface les états
-    // laissés par la page précédente (barre escamotée, panneau ouvert).
-    nv.classList.remove('is-hidden', 'open');
-    document.documentElement.classList.remove('nav-open');
-
     setOpen(false, { force: true });
-    onScroll();
-    window.requestAnimationFrame(() => movePill(currentLink()));
+    requestScroll();
 
-    // Les polices peuvent changer la largeur des libellés : on replace la pastille.
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => movePill(pillTarget || currentLink())).catch(() => {});
-    }
-    if (bar && 'ResizeObserver' in window) {
-      const ro = new ResizeObserver(() => movePill(pillTarget || currentLink()));
-      ro.observe(bar);
-      signal.addEventListener('abort', () => ro.disconnect(), { once: true });
-    }
+    // La pastille est peinte dans la même frame que le retrait du repli CSS :
+    // l'état courant est donc déjà à sa place au premier rendu utile.
+    window.requestAnimationFrame(() => {
+      if (signal.aborted) return;
+      measure();
+      paintPill(currentLink(), true);
+      document.documentElement.classList.add('nv-js');
+    });
   };
 
   initNav();
   window.addEventListener('pjax:load', initNav);
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) initNav();
+  });
   window.addEventListener('pagehide', () => {
     document.documentElement.classList.remove('nav-open');
   });

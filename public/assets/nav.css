@@ -55,7 +55,23 @@
     opacity .3s ease;
 }
 
-.nv.is-hidden .nv-progress i { opacity: .5; }
+.nv.is-hidden /* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.nv-progress i { opacity: .5; }
 
 .nv.scrolled {
   padding-top: 8px;
@@ -78,8 +94,11 @@
   background:
     radial-gradient(80% 160% at 12% 0%, rgba(139, 124, 255, .12), transparent 60%),
     linear-gradient(180deg, rgba(17, 18, 25, .82), rgba(9, 10, 14, .78));
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  backdrop-filter: blur(20px) saturate(1.4);
+  /* Un seul filtre, rayon modéré : la barre est fixe au-dessus d'un fond
+     animé, chaque pixel de flou est recalculé à chaque frame. */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transform: translateZ(0);
   box-shadow:
     0 20px 60px -34px rgba(0, 0, 0, .95),
     inset 0 1px 0 rgba(255, 255, 255, .06);
@@ -249,30 +268,41 @@
   transform: translateX(var(--nv-pill-x, 0px));
   opacity: 0;
   pointer-events: none;
+  /* Court et nerveux : la pastille suit le pointeur, elle ne doit pas arriver
+     avec un temps de retard. */
   transition:
-    transform .38s var(--ease-silk),
-    width .38s var(--ease-silk),
-    opacity .25s ease;
+    transform .22s var(--ease-silk),
+    width .22s var(--ease-silk),
+    opacity .14s ease;
 }
 
 .nv-pill.is-visible { opacity: 1; }
 
+/* Premier placement (chargement, redimensionnement, polices) : sans animation. */
+.nv-pill.is-instant { transition: none; }
+
 .nv .nv-links a { position: relative; z-index: 1; }
 
 .nv .nv-links a.nv-link::after { display: none; }
-.nv .nv-links a.nv-link:hover { color: var(--ink); }
 
-/* Sans JavaScript, aucune pastille ne glisse : on garde un fond au survol. */
-html:not(.nv-js) .nv .nv-links a.nv-link:hover { background: rgba(255, 255, 255, .06); }
+.nv .nv-links a.nv-link:hover { color: var(--ink); }
 
 .nv .nv-links a.nv-link:focus-visible {
   outline: 2px solid rgba(139, 124, 255, .8);
   outline-offset: 2px;
 }
 
-.nv .nv-links a.nv-link.is-current { color: var(--ink); }
+/* État courant peint dès le premier rendu (avant le script) : la barre est
+   juste tout de suite, sans attendre la mesure de la pastille. Quand le script
+   a positionné la pastille, il ajoute `nv-js` et le fond statique s'efface. */
+.nv .nv-links a.nv-link.is-current {
+  color: var(--ink);
+  background: rgba(255, 255, 255, .07);
+}
 
-.nv .nv-links a.nv-link:hover { background: transparent; }
+html.nv-js .nv .nv-links a.nv-link { transition: color .18s ease, background .18s ease; }
+html.nv-js .nv .nv-links a.nv-link:hover { background: transparent; }
+html.nv-js .nv .nv-links a.nv-link.is-current { background: transparent; }
 
 @media (min-width: 1041px) {
   .nv .nv-links a.nv-link:nth-child(-n + 3) { font-size: 13px; }
@@ -380,6 +410,7 @@ html:not(.nv-js) .nv .nv-links a.nv-link:hover { background: rgba(255, 255, 255,
 }
 
 .nv-cta:hover .arrow { transform: translateX(2px); }
+
 
 /* Discord (le markup est créé par site.js : on garde les mêmes classes). */
 .nav-auth { display: flex; align-items: center; }
@@ -492,6 +523,22 @@ html:not(.nv-js) .nv .nv-links a.nv-link:hover { background: rgba(255, 255, 255,
   background: transparent;
 }
 
+/* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
 .nv-progress i {
   display: block;
   width: var(--nv-progress, 0%);
@@ -541,6 +588,9 @@ html.nav-open body { padding-right: var(--nv-sbw, 0px); }
   .nv-burger { display: inline-block; }
   .nv-right { margin-left: auto; }
   .nv-pill { display: none; }
+
+  /* Pastille masquée en mode panneau : l'état courant garde son fond. */
+  html.nv-js .nv .nv-links a.nv-link.is-current { background: rgba(255, 255, 255, .06); }
 
   .nv-links {
     position: absolute;
@@ -716,6 +766,8 @@ html.nav-open body { padding-right: var(--nv-sbw, 0px); }
    Mouvement réduit
    ========================================================================== */
 @media (prefers-reduced-motion: reduce) {
+  html.pjax-loading .nv-progress i { animation: none; opacity: 1; }
+
   .nv,
   .nv-bar,
   .nv-pill,
@@ -728,7 +780,23 @@ html.nav-open body { padding-right: var(--nv-sbw, 0px); }
   .nv-burger span,
   .nv-burger span::before,
   .nv-burger span::after,
-  .nv-progress i {
+  /* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.nv-progress i {
     transition: none !important;
   }
 }

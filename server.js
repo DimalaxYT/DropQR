@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.17.0';
+const APP_VERSION = '1.17.1';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1093,6 +1093,11 @@ app.use('/assets', (req, res, next) => {
   // Les assets sont versionnés dans le HTML: ils peuvent être gardés en cache
   // sans ralentir les changements de page entre deux écrans.
   res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+  // Le middleware global pose `Pragma: no-cache` et `Expires: 0` : contradictoire
+  // avec le cache long et respecté par certains proxys, ce qui forçait à
+  // re-télécharger les feuilles et scripts à chaque page (barre lente à peindre).
+  res.removeHeader('Pragma');
+  res.removeHeader('Expires');
   next();
 }, express.static(path.join(PUBLIC_DIR, 'assets'), {
   etag: true,
@@ -1119,6 +1124,8 @@ Object.entries(ROOT_STATIC_FILES).forEach(([route, meta]) => {
   app.get(route, (_req, res, next) => {
     const filePath = path.join(PUBLIC_DIR, meta.file);
     res.setHeader('Cache-Control', `public, max-age=${meta.maxAge}`);
+    res.removeHeader('Pragma');
+    res.removeHeader('Expires');
     res.type(meta.type);
     res.sendFile(filePath, (error) => {
       if (error) next(error);
@@ -2028,7 +2035,7 @@ function renderSharePage(req, meta) {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=3">
+  <link rel="stylesheet" href="/assets/nav.css?v=4">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -2055,8 +2062,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=1" defer></script>
-  <script src="/assets/site.js?v=17" defer></script>
+  <script src="/assets/nav.js?v=2" defer></script>
+  <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
 }
@@ -2072,7 +2079,7 @@ function renderMessagePage(title, message) {
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=3">
+  <link rel="stylesheet" href="/assets/nav.css?v=4">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -2087,8 +2094,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=1" defer></script>
-  <script src="/assets/site.js?v=17" defer></script>
+  <script src="/assets/nav.js?v=2" defer></script>
+  <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
 }

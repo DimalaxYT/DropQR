@@ -14,6 +14,7 @@
 //   un AbortController: plus de fuite d'écouteurs scroll/resize.
 
 const pjaxCache = new Map(); // pathname+search -> { text, storedAt }
+const pjaxInflight = new Map(); // pathname+search -> Promise<string|null>
 const PJAX_CACHE_TTL_MS = 60 * 1000;
 const pjaxParser = window.DOMParser ? new DOMParser() : null;
 
@@ -21,6 +22,31 @@ const pjaxParser = window.DOMParser ? new DOMParser() : null;
 const PREFETCH_WHITELIST = new Set(['/', '/upload', '/receive', '/help', '/mentions', '/dashboard']);
 
 const isSafePrefetchPath = (pathname) => PREFETCH_WHITELIST.has(pathname);
+
+// Récupère le HTML d'une page en dédupliquant les requêtes : si un
+// préchargement est déjà en vol, le clic réutilise la même promesse au lieu
+// d'en lancer une seconde (c'est ce qui donnait l'impression d'un clic lent).
+const requestPageHtml = (url, silent) => {
+  const key = url.pathname + url.search;
+  if (pjaxInflight.has(key)) return pjaxInflight.get(key);
+  const task = (async () => {
+    try {
+      const res = await fetch(url.href, { headers: { 'X-PJAX': 'true' } });
+      if (!res.ok) throw new Error('Page not found');
+      const text = await res.text();
+      pjaxCache.set(key, { text, storedAt: Date.now() });
+      return text;
+    } catch (error) {
+      // Un préchargement qui échoue est sans conséquence : pas de bruit console.
+      if (!silent) console.error('PJAX fetch error', error);
+      return null;
+    } finally {
+      pjaxInflight.delete(key);
+    }
+  })();
+  pjaxInflight.set(key, task);
+  return task;
+};
 
 let siteTeardownController = null;
 let siteObserver = null;
@@ -186,28 +212,28 @@ const initSite = () => {
       && isSafePrefetchPath(entry.url.pathname))
     .filter((entry, index, links) => links.findIndex((other) => other.url.href === entry.url.href) === index);
 
-  const prefetchPage = async (url) => {
+  const prefetchPage = (url) => {
     const key = url.pathname + url.search;
     if (prefetched.has(key)) return;
     prefetched.add(key);
-    if (!pjaxParser || !isSafePrefetchPath(url.pathname)) return;
-    try {
-      const res = await fetch(url.href, { credentials: 'same-origin', signal });
-      if (res.ok && !signal.aborted) {
-        const text = await res.text();
-        pjaxCache.set(key, { text, storedAt: Date.now() });
-      }
-    } catch (_error) {}
+    if (!pjaxParser || !isSafePrefetchPath(url.pathname) || signal.aborted) return;
+    requestPageHtml(url, true).catch(() => {});
   };
 
   internalLinks.forEach(({ link, url }) => {
+    // Préchargement à l'approche du clic (survol, doigt posé, tabulation).
     link.addEventListener('pointerenter', () => prefetchPage(url), { passive: true, signal });
+    link.addEventListener('pointerdown', () => prefetchPage(url), { passive: true, signal });
+    link.addEventListener('focus', () => prefetchPage(url), { signal });
   });
 
   const warmNavigation = () => {
     if (signal.aborted) return;
-    internalLinks.forEach(({ url }, index) => {
-      window.setTimeout(() => prefetchPage(url), index * 90);
+    // On ne réchauffe que les pages de la barre de navigation : précharger tous
+    // les liens de la page saturait la connexion et retardait les clics.
+    const warm = internalLinks.filter(({ link }) => link.closest('#nv'));
+    warm.forEach(({ url }, index) => {
+      window.setTimeout(() => prefetchPage(url), index * 120);
     });
   };
   if ('requestIdleCallback' in window) window.requestIdleCallback(warmNavigation, { timeout: 900 });
@@ -260,29 +286,30 @@ window.addEventListener('pjax:load', initSite);
   };
 
   const fetchPage = async (url) => {
-    const key = url.pathname + url.search;
-    const cached = readCached(key);
+    const cached = readCached(url.pathname + url.search);
     if (cached !== null) return cached;
-    try {
-      const res = await fetch(url.href, { headers: { 'X-PJAX': 'true' } });
-      if (!res.ok) throw new Error('Page not found');
-      const text = await res.text();
-      pjaxCache.set(key, { text, storedAt: Date.now() });
-      return text;
-    } catch (e) {
-      console.error('PJAX fetch error', e);
-      return null;
-    }
+    return requestPageHtml(url);
   };
 
   const navigate = async (url) => {
     if (isNavigating) return;
     isNavigating = true;
 
+    // Retour visuel immédiat (voir nav.css) : le clic ne reste jamais muet,
+    // même si la requête met du temps.
     document.documentElement.classList.add('pjax-loading');
 
-    const html = await fetchPage(url);
+    // Filet de sécurité : au-delà de 2,5 s on laisse le navigateur faire une
+    // navigation classique (sa propre barre de chargement rassure l'utilisateur)
+    // plutôt que de laisser la page figée.
+    const html = await Promise.race([
+      fetchPage(url),
+      new Promise((resolve) => window.setTimeout(() => resolve(null), 2500))
+    ]);
+
     if (html === null) {
+      isNavigating = false;
+      document.documentElement.classList.remove('pjax-loading');
       window.location.href = url.href; // Fallback: chargement classique.
       return;
     }
