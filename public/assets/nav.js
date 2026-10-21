@@ -55,7 +55,6 @@
     // adopté tel quel : device.js a pu l'ouvrir avant l'arrivée de ce script,
     // et le refermer ici ferait « sauter » le panneau sous le doigt.
     nv.classList.remove('is-hidden');
-    const wasOpen = nv.classList.contains('open') && panelMode();
 
     // Repère pour les technologies d'assistance : le bouton menu pilote la liste.
     if (linksBox && !linksBox.id) linksBox.id = 'nv-links';
@@ -167,7 +166,7 @@
         hovered = link;
         paintPill(link);
       }, { signal });
-      link.addEventListener('click', () => setOpen(false), { signal });
+      link.addEventListener('click', () => closeMenu(false), { signal });
     });
 
     if (linksBox) {
@@ -232,62 +231,79 @@
     // ---------------------------------------------------------------------
     // Menu (petit écran)
     // ---------------------------------------------------------------------
+    // L'état ouvert/fermé appartient à device.js (script bloquant, exécuté avant
+    // le premier rendu : voir `window.__dropqrSetMenu`). Ce fichier ne pose
+    // AUCUN écouteur de clic sur le bouton : un seul propriétaire, donc aucun
+    // clic perdu ni double bascule, même si ce script arrive en retard.
+    // Ici on s'occupe du focus, du piège de clavier et de la remise en état.
     const focusables = () => {
       const nodes = [burger, ...items].filter(Boolean);
       return nodes.filter((node) => node.offsetParent !== null || node === burger);
     };
 
-    let open = false;
-
-    const lockScroll = (lock) => {
-      if (lock) {
-        const sbw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-        document.documentElement.style.setProperty('--nv-sbw', `${sbw}px`);
-      }
-      document.documentElement.classList.toggle('nav-open', lock);
-    };
-
-    // L'état de référence est la classe sur #nv : impossible de désynchroniser
-    // la variable et le DOM (c'est ce qui obligeait à cliquer deux fois).
     const isOpen = () => nv.classList.contains('open');
 
-    function setOpen(next, options = {}) {
-      const wanted = Boolean(next) && panelMode();
-      const changed = wanted !== open;
-      open = wanted;
-      nv.classList.toggle('open', open);
-      if (burger) burger.setAttribute('aria-expanded', String(open));
-      lockScroll(open);
-      if (open) {
+    const closeMenu = (restoreFocus) => {
+      if (typeof window.__dropqrSetMenu === 'function') {
+        window.__dropqrSetMenu(false, { restoreFocus: Boolean(restoreFocus) });
+        return;
+      }
+      // Repli si device.js n'est pas là (page isolée, test).
+      nv.classList.remove('open');
+      if (burger) burger.setAttribute('aria-expanded', 'false');
+      document.documentElement.classList.remove('nav-open');
+      if (restoreFocus && burger) burger.focus({ preventScroll: true });
+    };
+
+    // Filet de sécurité : si device.js n'a pas pu s'exécuter (page isolée, test,
+    // fichier bloqué), ce script prend le relais sur le clic. Le test porte sur
+    // l'API elle-même : jamais deux gestionnaires en même temps.
+    if (!window.__dropqrSetMenu && burger) {
+      const setMenuDirect = (next, restoreFocus) => {
+        const open = Boolean(next) && panelMode();
+        nv.classList.toggle('open', open);
+        burger.setAttribute('aria-expanded', String(open));
+        document.documentElement.classList.toggle('nav-open', open);
+        if (open) {
+          nv.classList.remove('is-hidden');
+          window.setTimeout(() => {
+            const first = items[0];
+            if (isOpen() && first) first.focus({ preventScroll: true });
+          }, 70);
+        } else if (restoreFocus) {
+          burger.focus({ preventScroll: true });
+        }
+      };
+      burger.addEventListener('click', () => setMenuDirect(!isOpen()), { signal });
+      if (scrim) scrim.addEventListener('click', () => setMenuDirect(false, true), { signal });
+      document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape' || !isOpen()) return;
+        event.preventDefault();
+        setMenuDirect(false, true);
+      }, { signal });
+      document.addEventListener('click', (event) => {
+        if (!isOpen() || nv.contains(event.target)) return;
+        setMenuDirect(false, false);
+      }, { signal });
+    }
+
+    nv.addEventListener('nav:menu', (event) => {
+      const detail = (event && event.detail) || {};
+      if (detail.open) {
         nv.classList.remove('is-hidden');
-        if (!changed) return;
         window.setTimeout(() => {
           const first = items[0];
           // Si le panneau a été refermé entre-temps, on ne déplace pas le focus.
           if (isOpen() && first && panelMode()) first.focus({ preventScroll: true });
         }, 70);
-      } else if (changed && options.restoreFocus && burger) {
+      } else if (detail.restoreFocus && burger) {
         burger.focus({ preventScroll: true });
       }
-    }
-
-    if (burger) {
-      burger.addEventListener('click', () => setOpen(!isOpen()), { signal });
-    }
-    if (scrim) {
-      scrim.addEventListener('click', () => setOpen(false, { restoreFocus: true }), { signal });
-    }
+    }, { signal });
 
     document.addEventListener(
       'keydown',
       (event) => {
-        if (event.key === 'Escape') {
-          if (isOpen()) {
-            event.preventDefault();
-            setOpen(false, { restoreFocus: true });
-          }
-          return;
-        }
         if (event.key !== 'Tab' || !isOpen() || !panelMode()) return;
         // Focus piégé dans le panneau tant qu'il est ouvert.
         const nodes = focusables();
@@ -301,15 +317,6 @@
           event.preventDefault();
           first.focus();
         }
-      },
-      { signal }
-    );
-
-    document.addEventListener(
-      'click',
-      (event) => {
-        if (!isOpen()) return;
-        if (!nv.contains(event.target)) setOpen(false);
       },
       { signal }
     );
@@ -376,6 +383,9 @@
     };
 
     window.addEventListener('resize', requestRefresh, { passive: true, signal });
+    window.addEventListener('resize', () => {
+      if (!panelMode() && isOpen()) closeMenu(false);
+    }, { passive: true, signal });
     nv.addEventListener('focusin', () => setHidden(false), { signal });
 
     if (bar && 'ResizeObserver' in window) {
@@ -393,11 +403,8 @@
     // ---------------------------------------------------------------------
     // Démarrage
     // ---------------------------------------------------------------------
-    setOpen(wasOpen, { force: true });
+    if (!panelMode() && isOpen()) closeMenu(false);
     requestScroll();
-
-    // device.js assurait l'amorçage du bouton menu : il se met en retrait.
-    window.__dropqrNavReady = true;
 
     // La pastille est peinte dans la même frame que le retrait du repli CSS :
     // l'état courant est donc déjà à sa place au premier rendu utile.

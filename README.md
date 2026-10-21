@@ -573,7 +573,7 @@ La barre est peinte dès le HTML/ CSS, mais son comportement arrive avec `assets
 ### Correctif
 
 - **amorçage immédiat dans `device.js`** (le seul script bloquant, exécuté dans le `<head>` avant le premier rendu) : un écouteur délégué gère le bouton menu, le voile, `Échap` et le verrou de défilement, avec `aria-expanded` synchronisé. Le bouton fonctionne donc dès le premier pixel affiché, et continue de fonctionner si `nav.js` n'arrive jamais ;
-- **passation propre** : dès que `nav.js` démarre, il pose `window.__dropqrNavReady`, ce qui met l'amorçage en retrait (aucun double basculement) ;
+- **passation propre** : ce mécanisme a été remplacé en 1.17.3 par un propriétaire unique (voir plus bas) ;
 - **état piloté par le DOM** : `nav.js` lit `.open` sur `#nv` (au lieu d'une variable locale) et adopte l'état déjà ouvert par l'amorçage — le panneau ne se referme plus tout seul sous le doigt ;
 - `setOpen()` est désormais **idempotent** : appliquer deux fois le même état ne produit aucun effet de bord (ni vol de focus, ni déverrouillage du défilement).
 
@@ -582,3 +582,27 @@ La barre est peinte dès le HTML/ CSS, mais son comportement arrive avec `assets
 Suite dédiée `burger` (17 assertions) : ouverture au premier clic avec et sans `nav.js`, Échap, voile, passation sans double bascule, alternance fiable sur quatre clics.
 
 - version portée à **1.17.2** (`/api/health`), assets versionnés (`nav.js?v=3`, `device.js?v=2`).
+
+## Version 1.17.3
+
+**Le menu de la barre a désormais un seul propriétaire.**
+
+Après la 1.17.2, deux scripts pouvaient se disputer le clic sur le bouton : `device.js` (amorçage) et `nav.js`. Selon l'ordre d'exécution, le drapeau censé départager les deux pouvait laisser un clic sans effet. Plutôt que d'empiler un garde-fou de plus, l'architecture a été simplifiée.
+
+### Un seul propriétaire
+
+- **`device.js`** (script bloquant du `<head>`, exécuté avant le premier rendu) possède l'état du menu : ouverture/fermeture, voile, `Échap`, clic extérieur, `aria-expanded`, verrou de défilement et compensation de la barre de défilement (`--nv-sbw`). Son écouteur est **délégué au document**, il survit donc aux remplacements PJAX de `#nv` ;
+- il expose `window.__dropqrSetMenu(open, options)` et diffuse un événement **`nav:menu`** ;
+- **`nav.js` ne pose plus aucun écouteur de clic sur le bouton** : il s'abonne à `nav:menu` pour le focus (premier lien du panneau, retour sur le bouton), garde le piège de tabulation, referme le panneau quand on suit un lien ou quand on repasse en grand écran. Deux gestionnaires concurrents ne peuvent donc plus s'annuler ;
+- **repli intégré** : si `device.js` est absent (page isolée, fichier bloqué), `nav.js` reprend le clic — vérifié sur l'API, jamais en même temps ;
+- le gestionnaire est protégé par un `try/catch` : une erreur éventuelle est journalisée et le panneau bascule quand même, au lieu d'avaler le clic en silence.
+
+### Rendu
+
+- `transform: translateZ(0)` retiré de `.nv-bar` : combiné à `backdrop-filter`, il pouvait décaler la zone peinte et la zone cliquable selon le moteur.
+
+### Vérifications
+
+Suite `burger` portée à **21 assertions** : ouverture au premier clic avec `device.js`, sans `device.js`, avec les deux, passation sans double bascule, `Échap`, voile, alternance fiable sur quatre clics, aucune erreur JS.
+
+- version portée à **1.17.3** (`/api/health`), assets versionnés (`device.js?v=3`, `nav.js?v=4`, `nav.css?v=5`).

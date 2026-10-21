@@ -105,34 +105,49 @@
   window.addEventListener('pjax:load', updateSwitchLinks);
 
   // ---------------------------------------------------------------------
-  // Menu de la barre : amorçage immédiat
+  // Menu de la barre : un seul propriétaire
   // ---------------------------------------------------------------------
   // Ce fichier est le seul script bloquant (dans <head>) : il s'exécute avant
-  // le premier rendu, alors que nav.js est chargé en `defer` et peut arriver
-  // une ou deux frames plus tard (réseau lent, page lourde). Sans cet
-  // amorçage, le premier clic sur le bouton menu tombait dans le vide : il
-  // fallait cliquer deux fois. Dès que nav.js démarre, il pose
-  // `window.__dropqrNavReady` et reprend entièrement la main.
-  function navFallbackActive() {
-    return !window.__dropqrNavReady;
-  }
-
+  // le premier rendu. C'est donc lui qui possède l'état du menu — et lui seul.
+  // L'écouteur est délégué au document : il survit aux remplacements PJAX de
+  // #nv, il est actif dès le premier pixel et il ne peut pas « manquer » parce
+  // qu'un autre script serait arrivé en retard. nav.js ne fait que s'abonner
+  // à l'événement `nav:menu` pour le focus et le verrou de défilement.
   function navRoot() {
     return document.getElementById('nv');
   }
 
-  function setMenu(open) {
+  function setMenu(open, options) {
     var nv = navRoot();
     if (!nv) return;
+    var opts = options || {};
+    var wasOpen = nv.classList.contains('open');
+    if (open && !wasOpen) {
+      // Compense la barre de défilement qui disparaît (voir nav.css).
+      var sbw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+      document.documentElement.style.setProperty('--nv-sbw', sbw + 'px');
+    }
     nv.classList.toggle('open', open);
+    if (open) nv.classList.remove('is-hidden');
     var burger = nv.querySelector('.nv-burger');
     if (burger) burger.setAttribute('aria-expanded', String(open));
-    if (open) nv.classList.remove('is-hidden');
     document.documentElement.classList.toggle('nav-open', open);
+    if (wasOpen === open) return;
+    var detail = { open: open, restoreFocus: !!opts.restoreFocus };
+    var evt = null;
+    try {
+      evt = new CustomEvent('nav:menu', { bubbles: true, detail: detail });
+    } catch (_error) {
+      evt = document.createEvent('CustomEvent');
+      evt.initCustomEvent('nav:menu', true, false, detail);
+    }
+    nv.dispatchEvent(evt);
   }
 
-  document.addEventListener('click', function (event) {
-    if (!navFallbackActive()) return; // nav.js gère tout une fois prêt
+  // Exposé pour nav.js (clics sur les liens, redimensionnement).
+  window.__dropqrSetMenu = setMenu;
+
+  function handleMenuClick(event) {
     var nv = navRoot();
     var target = event.target;
     if (!nv || !target || !target.closest) return;
@@ -141,18 +156,30 @@
       return;
     }
     if (!nv.classList.contains('open')) return;
-    if (target.closest('.nv-scrim') || !nv.contains(target)) setMenu(false);
+    if (target.closest('.nv-scrim')) {
+      setMenu(false, { restoreFocus: true });
+      return;
+    }
+    if (!nv.contains(target)) setMenu(false);
+  }
+
+  document.addEventListener('click', function (event) {
+    try {
+      handleMenuClick(event);
+    } catch (error) {
+      // Un clic sur le menu ne doit jamais rester sans effet ni sans trace.
+      console.error('DropQR menu:', error);
+      var nv = navRoot();
+      if (nv) nv.classList.toggle('open');
+    }
   });
 
   document.addEventListener('keydown', function (event) {
-    if (event.key !== 'Escape' || !navFallbackActive()) return;
+    if (event.key !== 'Escape') return;
     var nv = navRoot();
-    if (nv && nv.classList.contains('open')) {
-      event.preventDefault();
-      setMenu(false);
-      var burger = nv.querySelector('.nv-burger');
-      if (burger) burger.focus({ preventScroll: true });
-    }
+    if (!nv || !nv.classList.contains('open')) return;
+    event.preventDefault();
+    setMenu(false, { restoreFocus: true });
   });
 
   window.DropQRDevice = {
