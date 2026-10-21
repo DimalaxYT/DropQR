@@ -6,7 +6,7 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 
 - `/` : accueil — expérience WebGL 3D immersive (scroll cinématique, Drop Zone fonctionnelle)
 - `/upload` : création d’un transfert avec barre de progression
-- `/receive` : recherche d’un transfert par code — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots))
+- `/receive` : console de récupération — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots)), **scan de QR** (caméra ou image), codes récents, compte à rebours d’expiration
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
 - `/help` : aide, déploiement et explication du QR code dans la preview Arena
 - `/mentions` : mentions légales, confidentialité et données traitées
@@ -446,3 +446,18 @@ Saisie du code en **Code Slots « neon deck »** sur la page Recevoir (PC et té
 - formulaire de réception rapide de l’accueil téléphone équipé du même composant ;
 - `prefers-reduced-motion` : animations, tilt, scan et secousse désactivés ;
 - version portée à **1.13.0** (`/api/health`).
+
+## Version 1.14.0
+
+La page **Recevoir** devient une console de récupération complète (PC et téléphone) :
+
+- **mise en page en deux colonnes** : la console de saisie (titre éditorial, deck Code Slots, actions) à gauche ; le panneau d’état à droite, avec trois états animés — *attente* (sonar lumineux + rappel des 3 étapes), *erreur* (glyphe + message + bouton « Corriger le code ») et *transfert trouvé* ;
+- **scan de QR intégré** : bouton *Scanner* qui ouvre un scanner plein écran avec caméra arrière (`getUserMedia`) et décode les images via **jsQR** chargé à la demande (`assets/vendor/jsqr.js`, Apache-2.0, uniquement au premier scan) ; repli sur une image de la galerie, et sur la saisie manuelle si la caméra est refusée ou absente ;
+- **codes récents** : les 4 derniers transferts consultés sont mémorisés localement (`localStorage`), affichés en puces cliquables avec le nom du fichier et l’ancienneté, effaçables en un clic ;
+- **panneau résultat enrichi** : icône par type de fichier (vidéo / image / audio / archive), **compte à rebours vivant** avec barre qui passe au rouge dans la dernière minute, métadonnées, aperçu vidéo, téléchargement, copie du lien, partage natif et bouton *Actualiser* ;
+- **collage intelligent** : bouton *Coller* (code brut, `?code=`, `/c/CODE` ou lien `/t/ID`), et collage n’importe où dans la page redirigé vers le champ ;
+- **raccourcis clavier** : `/` pour saisir, `Entrée` pour rechercher, `Échap` pour vider ou fermer le scanner ;
+- **URL synchronisée** (`?code=…`) après une recherche réussie : rechargement et partage directs ;
+- **erreurs expliquées** : introuvable (404), expiré/supprimé (410), trop de requêtes (429), serveur — chacune avec son titre et son message ;
+- **toasts** pour les retours discrets, vibrations sur téléphone, `prefers-reduced-motion` respecté, et **nettoyage des minuteries / de la caméra** à chaque navigation PJAX ;
+- version portée à **1.14.0** (`/api/health`).

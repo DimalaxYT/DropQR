@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.14.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1069,7 +1069,7 @@ app.use((req, res, next) => {
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://cdn.discordapp.com",
+    "img-src 'self' data: blob: https://cdn.discordapp.com",
     "media-src 'self' blob:",
     "connect-src 'self'",
     "font-src 'self'",

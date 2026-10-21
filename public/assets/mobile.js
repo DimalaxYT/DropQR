@@ -5,7 +5,8 @@
 // identifiants HTML): ce fichier n'ajoute que les gestes « natifs »:
 //   - boutons Appareil photo / Galerie branchés sur le champ fichier principal;
 //   - partage natif (Web Share API) du lien créé ou reçu;
-//   - bouton Coller + extraction automatique du code depuis un lien DropQR;
+//   - (la page Recevoir est entièrement gérée par receive.js, commun aux deux
+//     versions : collage, scan de QR, codes récents, compte à rebours) ;
 //   - défilement vers le résultat + petite vibration quand l'envoi est prêt;
 //   - barre d'onglets masquée quand le clavier virtuel est ouvert.
 
@@ -21,29 +22,6 @@
       if (error && error.name === 'AbortError') return; // l'utilisateur a fermé la feuille
       try { await navigator.clipboard.writeText(url); } catch (_error) { window.prompt('Copie le lien:', url); }
     }
-  }
-
-  // Écrit le code dans le champ en gardant les Code Slots synchronisés.
-  function setCodeValue(input, value) {
-    if (!input) return;
-    if (input.codeSlots) input.codeSlots.setValue(value);
-    else input.value = value;
-  }
-
-  // Extrait un code DropQR d'un texte collé: code brut, /c/CODE, /code/CODE ou ?code=CODE.
-  function extractCode(text) {
-    const value = String(text || '').trim();
-    if (!value) return '';
-    try {
-      const url = new URL(value);
-      const fromQuery = url.searchParams.get('code');
-      if (fromQuery) return fromQuery;
-      const match = url.pathname.match(/\/(?:c|code)\/([A-Za-z0-9-]+)/);
-      if (match) return match[1];
-      const share = url.pathname.match(/\/(?:t|share)\/([A-Za-z0-9_-]+)/);
-      if (share) return { shareUrl: url.href };
-    } catch (_error) {}
-    return value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24);
   }
 
   function initUpload() {
@@ -116,64 +94,6 @@
     }
   }
 
-  function initReceive() {
-    const form = document.getElementById('receiveForm');
-    const input = document.getElementById('transferCode');
-    if (!form || !input || form.dataset.mobileInit === '1') return;
-    form.dataset.mobileInit = '1';
-
-    const pasteBtn = document.getElementById('pasteCode');
-    if (pasteBtn && navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
-      pasteBtn.classList.remove('hidden');
-      pasteBtn.addEventListener('click', async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          const code = extractCode(text);
-          if (code && typeof code === 'object' && code.shareUrl) {
-            window.location.href = code.shareUrl;
-            return;
-          }
-          if (!code) return;
-          setCodeValue(input, code);
-          vibrate(12);
-          if (typeof form.requestSubmit === 'function') form.requestSubmit();
-          else form.dispatchEvent(new Event('submit', { cancelable: true }));
-        } catch (_error) {
-          input.focus();
-        }
-      });
-    }
-
-    // Un lien complet collé directement dans le champ -> on garde juste le code.
-    input.addEventListener('paste', (event) => {
-      const text = event.clipboardData && event.clipboardData.getData('text');
-      const code = extractCode(text);
-      if (typeof code === 'string' && code && text && /[/:?]/.test(text)) {
-        event.preventDefault();
-        setCodeValue(input, code);
-      }
-    });
-
-    const shareBtn = document.getElementById('shareReceiveLink');
-    const copyBtn = document.getElementById('copyReceiveLink');
-    const fileName = document.getElementById('receiveFileName');
-    if (shareBtn && canShare) {
-      shareBtn.classList.remove('hidden');
-      shareBtn.addEventListener('click', () => shareUrl(copyBtn && copyBtn.dataset.url, fileName && fileName.textContent));
-    }
-
-    const result = document.getElementById('receiveResult');
-    if (result && 'MutationObserver' in window) {
-      new MutationObserver(() => {
-        if (!result.classList.contains('hidden')) {
-          input.blur();
-          vibrate(15);
-          window.setTimeout(() => result.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-        }
-      }).observe(result, { attributes: true, attributeFilter: ['class'] });
-    }
-  }
-
   // Clavier virtuel: la visualViewport rétrécit nettement quand il s'ouvre.
   let keyboardWatch = false;
   function initKeyboardWatch() {
@@ -203,7 +123,6 @@
 
   const init = () => {
     initUpload();
-    initReceive();
     initKeyboardWatch();
     syncTabs();
   };
