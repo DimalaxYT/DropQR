@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.16.0';
+const APP_VERSION = '1.17.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1976,6 +1976,7 @@ function renderSiteHeader() {
     <div class="nv-bar">
       <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <span class="nv-pill" aria-hidden="true"></span>
         <a class="nv-link" href="/#product">Product</a>
         <a class="nv-link" href="/#how">How it works</a>
         <a class="nv-link" href="/#faq">FAQ</a>
@@ -1988,6 +1989,7 @@ function renderSiteHeader() {
         <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
       </div>
     </div>
+    <span class="nv-scrim" aria-hidden="true"></span>
     <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>`;
 }
@@ -2026,12 +2028,13 @@ function renderSharePage(req, meta) {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=2">
+  <link rel="stylesheet" href="/assets/nav.css?v=3">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
 ${renderSiteHeader()}
   <div class="shell share-shell">
-    <main class="share-page card">
+    <main id="main" tabindex="-1" class="share-page card">
       <div class="page-code">PUBLIC / DOWNLOAD</div>
       <h1>Le fichier est prêt.</h1>
       <p class="lead">Ce passage est temporaire. Récupère le fichier avant son expiration.</p>
@@ -2052,7 +2055,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/nav.js?v=1" defer></script>
+  <script src="/assets/site.js?v=17" defer></script>
 </body>
 </html>`;
 }
@@ -2068,12 +2072,13 @@ function renderMessagePage(title, message) {
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=2">
+  <link rel="stylesheet" href="/assets/nav.css?v=3">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
 ${renderSiteHeader()}
   <div class="shell share-shell">
-    <main class="share-page card">
+    <main id="main" tabindex="-1" class="share-page card">
       <div class="page-code">SYSTEM / NOTICE</div>
       <h1>${escapeHtml(title)}</h1>
       <p class="lead">${escapeHtml(message)}</p>
@@ -2082,7 +2087,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/nav.js?v=1" defer></script>
+  <script src="/assets/site.js?v=17" defer></script>
 </body>
 </html>`;
 }

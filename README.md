@@ -5,7 +5,7 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 ## Pages
 
 - `/` : accueil — expérience WebGL 3D immersive (scroll cinématique, Drop Zone fonctionnelle)
-- barre de navigation commune (`assets/nav.css`) : barre flottante en verre, liens segmentés, chip *Receive*, CTA à pastille, progression de lecture, panneau de menu sur petit écran
+- barre de navigation commune (`assets/nav.css` pour le style, `assets/nav.js` pour le comportement) : barre flottante en verre, liens segmentés, pastille qui glisse sous le lien survolé, repérage de la section au défilement, escamotage automatique, progression de lecture, panneau de menu animé sur petit écran
 - `/upload` : création d’un transfert avec barre de progression
 - `/receive` : console de récupération — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots)), **scan de QR** (caméra ou image), codes récents, compte à rebours d’expiration
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
@@ -509,3 +509,28 @@ Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
 
 - les anciennes règles de barre de navigation, de menu burger et de boutons `nv-app` ont été retirées de `pages.css`, `landing.css` et `mobile.css` : tout est désormais dans `nav.css`, sans doublons qui se battaient en cascade ;
 - version portée à **1.16.0** (`/api/health`), assets versionnés (`nav.css?v=2`, `pages.css?v=5`, `mobile.css?v=3`, `landing.css?v=5`, `receive.css?v=3`).
+
+## Version 1.17.0
+
+**La barre de navigation prend vie** : toute sa logique a été sortie des pages dans un module unique, `assets/nav.js`.
+
+### Comportement (`assets/nav.js`)
+
+- un seul module pour toutes les pages, chargé avant `site.js` ; il retrouve ses éléments à chaque initialisation, se réinstalle après chaque navigation PJAX (`pjax:load`) et **annule proprement ses anciens écouteurs** (`AbortController`) pour ne jamais empiler les handlers ;
+- **pastille glissante** : un halo dégradé se déplace sous le lien survolé ou sélectionné au clavier (`--nv-pill-x`, `--nv-pill-w`), puis revient sous le lien de la page courante quand la souris repart ; repositionnée après le chargement de la police et au redimensionnement (`ResizeObserver`), donc jamais décalée ;
+- **repérage de section** sur la landing : `IntersectionObserver` (`rootMargin: -25% / -55%`) marque le lien de la section visible (`#product`, `#how`, `#faq`), en haut de page on revient à « aucun lien » et une seule entrée est courante à la fois ;
+- **escamotage au défilement** : la barre s’efface en descendant (au-delà de 340 px), revient dès qu’on remonte de 6 px ou qu’on approche du haut de page, et **ne s’efface jamais** quand le menu est ouvert ou que le clavier parcourt les liens ;
+- **menu mobile** : panneau ouvert sous 1040 px avec voile cliquable (`.nv-scrim`), verrou de défilement (`html.nav-open`), apparition des liens en cascade (`--nv-i`), **piège de focus** (Tab boucle dans le panneau), `Échap` et clic extérieur pour fermer, focus rendu au bouton menu, `aria-expanded` synchronisé ;
+- **progression de lecture** lissée en `requestAnimationFrame`, et `prefers-reduced-motion` respecté (pastille et panneau sans transition).
+
+### Accessibilité
+
+- **lien d’évitement** « Aller au contenu » en première position dans chaque page (visible au focus), cible `<main id="main" tabindex="-1">` ;
+- `aria-current="page"` sur le lien courant, `aria-expanded` / `aria-controls` sur le bouton menu, voile marqué `aria-hidden` ;
+- contraste et focus visibles conservés sur fond de verre.
+
+### Nettoyage
+
+- les blocs de gestion de la barre ont été **retirés de `site.js` et de `landing3d.js`** : plus de doublons d’écouteurs ni de comportement qui différait d’une page à l’autre ; le balisage reste identique partout (pages statiques, rendu serveur, page de partage) ;
+- `assets/nav.js` ajouté au contrôle `npm run check` ;
+- version portée à **1.17.0** (`/api/health`), assets versionnés (`nav.css?v=3`, `site.js?v=17`, `nav.js?v=1`).

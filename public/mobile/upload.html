@@ -17,9 +17,10 @@
   <link rel="stylesheet" href="/assets/code-slots.css?v=2">
   <link rel="stylesheet" href="/assets/receive.css?v=3">
   <link rel="stylesheet" href="/assets/mobile.css?v=3">
-  <link rel="stylesheet" href="/assets/nav.css?v=2">
+  <link rel="stylesheet" href="/assets/nav.css?v=3">
 </head>
 <body class="m-body">
+  <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="nv m-top" id="nv">
     <div class="nv-bar">
       <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
@@ -28,11 +29,12 @@
         <a class="nv-cta" href="/receive"><span class="nv-cta-label">Recevoir</span><span class="arrow" aria-hidden="true">→</span></a>
       </div>
     </div>
+    <span class="nv-scrim" aria-hidden="true"></span>
     <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
   <div class="shell m-shell">
-    <main class="m-main m-upload">
+    <main id="main" tabindex="-1" class="m-main m-upload">
       <div class="m-page-head">
         <h1>Envoyer</h1>
         <p class="lead">Un fichier, un code, un QR. Jusqu’à <strong data-max-file-size>10 Go</strong>.</p>
@@ -138,6 +140,7 @@
       <a href="/dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Transferts</span></a>
     </nav>
   </div>
+  <script src="/assets/nav.js?v=1" defer></script>
   <script src="/assets/site.js?v=17" defer></script>
   <script src="/assets/store.js?v=1" defer></script>
   <script src="/assets/upload.js?v=17" defer></script>

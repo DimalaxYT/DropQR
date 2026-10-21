@@ -816,7 +816,6 @@ import * as THREE from '/assets/vendor/three.module.min.js';
     pointer.active = true;
   }, { passive: true });
 
-  const nv = document.getElementById('nv');
   const dz = document.getElementById('dropzone');
   const storyEl = document.getElementById('story');
 
@@ -1138,49 +1137,8 @@ import * as THREE from '/assets/vendor/three.module.min.js';
     });
   })();
 
-  /* Barre de navigation : verre au scroll, progression de lecture, panneau
-     déroulant sur petit écran et lien de la page courante. Même comportement
-     que site.js (les pages intérieures), la landing n'embarquant pas site.js. */
-  (function initNav() {
-    if (!nv) return;
-    const burger = nv.querySelector('.nv-burger');
-    const progress = nv.querySelector('.nv-progress i');
-    const setOpen = (open) => {
-      nv.classList.toggle('open', open);
-      if (burger) burger.setAttribute('aria-expanded', String(open));
-    };
-
-    let ticking = false;
-    const onScrollNav = () => {
-      ticking = false;
-      const y = window.scrollY || 0;
-      nv.classList.toggle('scrolled', y > 24);
-      if (progress) {
-        const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-        progress.style.setProperty('--nv-progress', `${(Math.min(1, Math.max(0, y / max)) * 100).toFixed(2)}%`);
-      }
-    };
-    const requestScrollUpdate = () => {
-      if (ticking) return;
-      ticking = true;
-      requestAnimationFrame(onScrollNav);
-    };
-
-    window.addEventListener('scroll', requestScrollUpdate, { passive: true });
-    window.addEventListener('resize', requestScrollUpdate, { passive: true });
-    onScrollNav();
-
-    if (burger) burger.addEventListener('click', () => setOpen(!nv.classList.contains('open')));
-    nv.querySelectorAll('.nv-links a').forEach((link) => link.addEventListener('click', () => setOpen(false)));
-    document.addEventListener('keydown', (event) => {
-      if (event.key !== 'Escape') return;
-      const wasOpen = nv.classList.contains('open');
-      setOpen(false);
-      if (wasOpen && burger) burger.focus();
-    });
-    document.addEventListener('click', (event) => { if (!nv.contains(event.target)) setOpen(false); });
-    setOpen(false);
-  })();
+  /* La barre de navigation (menu, pastille, progression, escamotage) est gérée
+     par assets/nav.js, commun à toutes les pages. */
 
   /* ------------------------------------------------ boucle principale */
   const clock = new THREE.Clock();

@@ -16,11 +16,13 @@
   <meta property="og:type" content="website">
   <title>DropQR — Share without limits</title>
   <link rel="stylesheet" href="/assets/landing.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=2">
+  <link rel="stylesheet" href="/assets/nav.css?v=3">
+  <script src="/assets/nav.js?v=1" defer></script>
   <script src="/assets/vendor/qrcode.min.js?v=1" defer></script>
   <script type="module" src="/assets/landing3d.js?v=2"></script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
   <canvas id="gl" aria-hidden="true"></canvas>
   <canvas id="gl2" aria-hidden="true"></canvas>
 
@@ -28,6 +30,7 @@
     <div class="nv-bar">
       <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <span class="nv-pill" aria-hidden="true"></span>
         <a class="nv-link is-current" href="/#product">Product</a>
         <a class="nv-link is-current" href="/#how">How it works</a>
         <a class="nv-link is-current" href="/#faq">FAQ</a>
@@ -40,10 +43,11 @@
         <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
       </div>
     </div>
+    <span class="nv-scrim" aria-hidden="true"></span>
     <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
-  <main>
+  <main id="main" tabindex="-1">
     <!-- ============ HERO ============ -->
     <section id="hero">
       <div class="hero-copy">
