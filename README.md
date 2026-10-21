@@ -6,7 +6,7 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 
 - `/` : accueil — expérience WebGL 3D immersive (scroll cinématique, Drop Zone fonctionnelle)
 - `/upload` : création d’un transfert avec barre de progression
-- `/receive` : recherche d’un transfert par code
+- `/receive` : recherche d’un transfert par code — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots))
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
 - `/help` : aide, déploiement et explication du QR code dans la preview Arena
 - `/mentions` : mentions légales, confidentialité et données traitées
@@ -19,7 +19,7 @@ Les pages `/`, `/upload`, `/receive` et `/dashboard` existent en deux versions, 
 - **PC** : `public/*.html` (landing WebGL 3D, mise en page large) ;
 - **Téléphone** : `public/mobile/*.html` + `assets/mobile.css` + `assets/mobile.js` (pas de WebGL, barre d’onglets en bas, gros boutons, boutons *Appareil photo* / *Galerie*, partage natif, bouton *Coller* pour le code, écran maintenu allumé pendant l’envoi).
 
-La logique métier est partagée (`upload.js`, `receive.js`, `dashboard.js` : mêmes identifiants HTML).
+La logique métier est partagée (`upload.js`, `receive.js`, `dashboard.js` : mêmes identifiants HTML). La saisie du code utilise le même composant dans les deux versions (`assets/code-slots.js` + `assets/code-slots.css`).
 
 Détection, dans l’ordre de priorité :
 
@@ -430,3 +430,16 @@ Nouvelle page d'accueil : **expérience WebGL 3D immersive** (`/`) :
 - le slot de connexion **Discord** (v1.11.0) est conservé dans la nouvelle barre de navigation.
 
 La page classique reste accessible : `/upload`, `/receive`, `/dashboard`, `/help` et `/mentions` sont inchangées.
+
+## Version 1.13.0
+
+Saisie du code en **Code Slots** sur la page Recevoir (PC et téléphone) :
+
+- rangée de 7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots) — **sans React ni dépendance** : `public/assets/code-slots.js` + `public/assets/code-slots.css`, ~10 Ko, chargés en same-origin (CSP `script-src 'self'` respectée) ;
+- chaque caractère « atterrit » avec un léger rebond, le curseur clignote dans la case active, une cascade de 20 ms sépare les caractères qui arrivent d’un coup (collage, `?code=…`), et les caractères effacés « tombent » avant de vider la case ;
+- états **erreur** (teinte danger + secousse, les caractères restent pour correction) et **succès** (halo vert), en complément du message texte déjà présent ;
+- saisie instantanée : le code est mis en majuscules, les séparateurs et les liens collés (`…/receive?code=Q7R4M2K`, `/c/Q7R4M2K`) sont nettoyés, et la recherche se lance automatiquement dès la 7ᵉ case remplie ;
+- le vrai `<input>` reste dans le DOM (label, clavier, collage, `aria-invalid`, `role="status"` sur le message) : sans JavaScript, le champ s’affiche et fonctionne exactement comme avant ;
+- formulaire de réception rapide de l’accueil téléphone équipé du même composant ;
+- `prefers-reduced-motion` : animations et secousse désactivées ;
+- version portée à **1.13.0** (`/api/health`).

@@ -8,6 +8,7 @@
   <meta name="color-scheme" content="dark">
   <title>Recevoir — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="stylesheet" href="/assets/code-slots.css?v=1">
 </head>
 <body>
   <header class="nv" id="nv">
@@ -33,10 +34,13 @@
         <div class="page-code">03 / RECEIVE</div>
         <h1 class="small-title">Le code ouvre le passage.</h1>
         <p class="lead">Entre le code reçu ou ouvre directement le lien du QR. Le fichier reste visible jusqu'à son expiration.</p>
-        <form id="receiveForm" class="receive-form">
-          <label class="field"><span class="label-row">Code DropQR <span class="hint">exemple : Q7R4M2K</span></span><input id="transferCode" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="ENTRER LE CODE" maxlength="32" required></label>
+        <form id="receiveForm" class="receive-form" action="/receive" method="get">
+          <div class="field">
+            <label class="label-row" for="transferCode">Code DropQR <span class="hint">7 caractères · ex. Q7R4M2K</span></label>
+            <input id="transferCode" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="ENTRER LE CODE" maxlength="32" required data-code-slots="7" name="code" aria-describedby="receiveStatus">
+          </div>
           <button class="primary-btn" type="submit">Rechercher le fichier</button>
-          <div id="receiveStatus" class="status"></div>
+          <div id="receiveStatus" class="status" role="status" aria-live="polite"></div>
         </form>
       </section>
 
@@ -68,6 +72,7 @@
     </footer>
   </div>
   <script src="/assets/site.js?v=16" defer></script>
-  <script src="/assets/receive.js?v=7" defer></script>
+  <script src="/assets/code-slots.js?v=1" defer></script>
+  <script src="/assets/receive.js?v=8" defer></script>
 </body>
 </html>

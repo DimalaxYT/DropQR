@@ -1,0 +1,235 @@
+/* DropQR — Code Slots
+   Adaptation maison du composant « Code Slots » de React Bits
+   (https://reactbits.dev/micro/code-slots) pour la saisie du code DropQR.
+
+   Même intention : une rangée de cases qui accueillent chaque caractère, avec
+   une pastille qui « atterrit » (petit rebond), un curseur clignotant dans la
+   case active, une cascade quand plusieurs caractères arrivent d'un coup, et
+   des états erreur / succès. Ici, tout est en CSS pur : aucun framework, aucune
+   dépendance, et le vrai <input> reste dans le DOM (clavier, collage, label,
+   lecteurs d'écran). Sans JavaScript, le champ garde son apparence classique. */
+
+.cs {
+  --cs-accent: var(--ink, #ece9e2);
+  --cs-ink: var(--ink, #ece9e2);
+  --cs-slot-bg: rgba(255, 255, 255, .035);
+  --cs-digit: #0b0c0f;
+  --cs-danger: var(--coral, #ff8f7a);
+  --cs-gap: 8px;
+  --cs-radius: clamp(9px, 2.4vw, 12px);
+  --cs-settle: 300ms;
+  --cs-cascade: 20ms;
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.cs-row {
+  display: grid;
+  grid-template-columns: repeat(var(--cs-length, 7), minmax(0, 1fr));
+  gap: var(--cs-gap);
+  width: 100%;
+  max-width: calc(var(--cs-length, 7) * 48px + (var(--cs-length, 7) - 1) * var(--cs-gap));
+  margin-inline: auto;
+}
+
+.cs-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgba(236, 233, 226, .12);
+  border-radius: var(--cs-radius);
+  background: var(--cs-slot-bg);
+  color: var(--cs-digit);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: clamp(16px, 4.6vw, 21px);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  transition:
+    background-color var(--cs-settle) ease,
+    border-color 250ms ease,
+    box-shadow 250ms ease;
+}
+
+.cs-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .14), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--cs-settle) ease;
+  pointer-events: none;
+}
+
+.cs-slot.is-filled {
+  border-color: transparent;
+  background: var(--cs-accent);
+  color: var(--cs-digit);
+}
+
+.cs-slot.is-filled::before { opacity: 1; }
+
+.cs-digit {
+  position: relative;
+  display: block;
+  transform: translateY(0);
+  will-change: transform, opacity;
+}
+
+/* ---------- Curseur (case active) ---------- */
+.cs-slot.is-active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 44%;
+  border-radius: 2px;
+  background: var(--cs-ink);
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.cs--focus .cs-slot.is-active::after {
+  animation: cs-caret 1.08s steps(1, end) infinite;
+}
+
+@keyframes cs-caret {
+  0%, 49% { opacity: .9; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Le champ natif est transparent : l'anneau de focus doit donc être dessiné
+   par la rangée, sinon il serait invisible (opacity: 0). */
+.cs:focus-within .cs-row {
+  border-radius: calc(var(--cs-radius) + 4px);
+  box-shadow: 0 0 0 3px rgba(139, 124, 255, .1);
+}
+
+.cs:focus-within .cs-slot.is-active {
+  border-color: rgba(139, 124, 255, .55);
+  box-shadow: 0 0 0 3px rgba(139, 124, 255, .16);
+}
+
+/* ---------- Atterrissage / vidage ---------- */
+.cs-slot.is-landing .cs-digit {
+  animation: cs-land var(--cs-settle) cubic-bezier(.34, 1.56, .64, 1) both;
+  animation-delay: var(--cs-delay, 0ms);
+}
+
+@keyframes cs-land {
+  from { opacity: 0; transform: translateY(8px) scale(.78); }
+  60% { opacity: 1; }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cs-slot.is-draining {
+  background: transparent;
+  border-color: rgba(236, 233, 226, .12);
+  color: var(--cs-ink);
+}
+
+.cs-slot.is-draining .cs-digit {
+  animation: cs-drain var(--cs-settle) ease both;
+  animation-delay: var(--cs-delay, 0ms);
+}
+
+@keyframes cs-drain {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-8px) scale(.78); }
+}
+
+/* ---------- États ---------- */
+.cs--error .cs-slot {
+  border-color: rgba(255, 143, 122, .6);
+  background: rgba(255, 143, 122, .1);
+  color: #ffc4b8;
+  box-shadow: 0 0 0 1px rgba(255, 143, 122, .18);
+}
+
+.cs--shake .cs-row {
+  animation: cs-shake 420ms cubic-bezier(.36, .07, .19, .97) both;
+}
+
+@keyframes cs-shake {
+  10%, 90% { transform: translateX(-1.5px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+.cs--success .cs-slot {
+  box-shadow: 0 0 0 1px rgba(88, 211, 155, .45), 0 10px 30px rgba(88, 211, 155, .16);
+}
+
+.cs--success .cs-row {
+  animation: cs-wash 620ms ease both;
+}
+
+@keyframes cs-wash {
+  0% { filter: brightness(1); }
+  40% { filter: brightness(1.35); }
+  100% { filter: brightness(1); }
+}
+
+.cs--disabled { opacity: .45; }
+.cs--disabled .cs-native { cursor: not-allowed; }
+
+/* ---------- Le vrai champ, invisible, par-dessus les cases ---------- */
+/* Sélecteur volontairement spécifique : mobile.css impose `min-height: 54px`
+   aux champs avec !important ; on doit pouvoir neutraliser cette hauteur pour
+   que la zone cliquable reste exactement celle des cases. */
+html .cs input.cs-native {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: var(--cs-radius) !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: transparent !important;
+  caret-color: transparent !important;
+  font-size: 16px !important;
+  letter-spacing: 0 !important;
+  text-align: left !important;
+  opacity: 0;
+  cursor: text;
+}
+
+/* ---------- Téléphone ---------- */
+@media (max-width: 520px) {
+  .cs { --cs-gap: 6px; }
+  .cs-slot { font-size: clamp(16px, 5.2vw, 20px); }
+}
+
+/* Formulaire mobile : les cases prennent toute la largeur, le bouton passe
+   dessous plutôt que d'écraser la rangée. */
+.m-code-form.cs-form,
+.m-code-form:has(.cs) {
+  grid-template-columns: 1fr;
+}
+
+.m-code-form.cs-form .primary-btn,
+.m-code-form:has(.cs) .primary-btn {
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs-slot,
+  .cs-slot::before,
+  .cs-digit,
+  .cs-row {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .cs--focus .cs-slot.is-active::after { animation: none; opacity: .9; }
+}

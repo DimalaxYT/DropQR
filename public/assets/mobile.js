@@ -23,6 +23,13 @@
     }
   }
 
+  // Écrit le code dans le champ en gardant les Code Slots synchronisés.
+  function setCodeValue(input, value) {
+    if (!input) return;
+    if (input.codeSlots) input.codeSlots.setValue(value);
+    else input.value = value;
+  }
+
   // Extrait un code DropQR d'un texte collé: code brut, /c/CODE, /code/CODE ou ?code=CODE.
   function extractCode(text) {
     const value = String(text || '').trim();
@@ -127,7 +134,7 @@
             return;
           }
           if (!code) return;
-          input.value = code;
+          setCodeValue(input, code);
           vibrate(12);
           if (typeof form.requestSubmit === 'function') form.requestSubmit();
           else form.dispatchEvent(new Event('submit', { cancelable: true }));
@@ -143,7 +150,7 @@
       const code = extractCode(text);
       if (typeof code === 'string' && code && text && /[/:?]/.test(text)) {
         event.preventDefault();
-        input.value = code;
+        setCodeValue(input, code);
       }
     });
 

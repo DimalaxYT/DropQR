@@ -12,6 +12,7 @@
   <title>DropQR — Partage sans limites</title>
   <link rel="stylesheet" href="/assets/pages.css?v=3">
   <link rel="stylesheet" href="/assets/mobile.css?v=1">
+  <link rel="stylesheet" href="/assets/code-slots.css?v=1">
 </head>
 <body class="m-body">
   <header class="nv m-top" id="nv">
@@ -43,7 +44,7 @@
           <div><h2 id="quickReceiveTitle">Recevoir</h2><p>Entre le code reçu, ou scanne le QR avec l’appareil photo.</p></div>
         </div>
         <form class="m-code-form" action="/receive" method="get">
-          <input class="code-input" name="code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="CODE" maxlength="32" required aria-label="Code DropQR">
+          <input class="code-input" name="code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="CODE" maxlength="32" required aria-label="Code DropQR" data-code-slots="7">
           <button class="primary-btn" type="submit">Ouvrir</button>
         </form>
       </section>
@@ -97,6 +98,7 @@
     </nav>
   </div>
   <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/code-slots.js?v=1" defer></script>
   <script src="/assets/mobile.js?v=1" defer></script>
 </body>
 </html>

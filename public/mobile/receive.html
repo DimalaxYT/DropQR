@@ -11,6 +11,7 @@
   <title>Recevoir — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=3">
   <link rel="stylesheet" href="/assets/mobile.css?v=1">
+  <link rel="stylesheet" href="/assets/code-slots.css?v=1">
 </head>
 <body class="m-body">
   <header class="nv m-top" id="nv">
@@ -25,10 +26,11 @@
         <p class="lead">Tape le code reçu. Tu as un QR ? Vise-le simplement avec l’appareil photo de ton téléphone.</p>
       </div>
 
-      <form id="receiveForm" class="m-card receive-form">
-        <label class="field"><span class="label-row">Code DropQR <span class="hint">ex. Q7R4M2K</span></span>
-          <input id="transferCode" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="CODE" maxlength="32" required>
-        </label>
+      <form id="receiveForm" class="m-card receive-form" action="/receive" method="get">
+        <div class="field">
+          <label class="label-row" for="transferCode">Code DropQR <span class="hint">7 caractères · ex. Q7R4M2K</span></label>
+          <input id="transferCode" class="code-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="go" placeholder="CODE" maxlength="32" required data-code-slots="7" name="code" aria-describedby="receiveStatus">
+        </div>
         <div class="m-inline-actions">
           <button id="pasteCode" class="secondary-btn hidden" type="button">
             <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="4" width="10" height="4" rx="1"/><path d="M7 6H5v15h14V6h-2"/></svg>
@@ -84,7 +86,8 @@
     </nav>
   </div>
   <script src="/assets/site.js?v=16" defer></script>
-  <script src="/assets/receive.js?v=7" defer></script>
+  <script src="/assets/code-slots.js?v=1" defer></script>
+  <script src="/assets/receive.js?v=8" defer></script>
   <script src="/assets/mobile.js?v=1" defer></script>
 </body>
 </html>

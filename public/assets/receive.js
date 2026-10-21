@@ -23,6 +23,17 @@ const initReceivePage = () => {
     return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 24);
   }
 
+  // Code Slots (assets/code-slots.js) : on passe par son API quand elle est
+  // disponible pour que les cases restent synchronisées avec la valeur.
+  function setCode(value, options) {
+    if (input.codeSlots) input.codeSlots.setValue(value, options);
+    else input.value = value;
+  }
+
+  function setCodeStatus(status) {
+    if (input.codeSlots) input.codeSlots.setStatus(status);
+  }
+
   function setStatus(message, type = '') {
     status.className = `status ${type}`.trim();
     status.textContent = message;
@@ -48,7 +59,10 @@ const initReceivePage = () => {
     const normalized = normalize(code);
     if (!normalized) return;
 
-    input.value = normalized;
+    // Cascade quand le code vient de l'extérieur (?code=..., QR): les cases se
+    // remplissent une à une, comme dans le composant d'origine.
+    setCode(normalized, { cascade: autoOpen });
+    setCodeStatus('idle');
     result.classList.add('hidden');
     hideVideo();
     setStatus('Recherche du fichier…');
@@ -80,10 +94,12 @@ const initReceivePage = () => {
       }
 
       result.classList.remove('hidden');
+      setCodeStatus('success');
       setStatus(autoOpen ? 'QR code reconnu. Tu peux lire ou télécharger.' : 'Fichier trouvé.', 'success');
     } catch (error) {
       currentPayload = null;
       hideVideo();
+      setCodeStatus('error');
       setStatus(error.message, 'error');
     }
   }
