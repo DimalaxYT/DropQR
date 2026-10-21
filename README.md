@@ -561,3 +561,24 @@ Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
 ### Divers
 
 - version portée à **1.17.1** (`/api/health`), assets versionnés (`nav.css?v=4`, `nav.js?v=2`, `site.js?v=18`).
+
+## Version 1.17.2
+
+**Correctif : le bouton menu de la barre (« ≡ ») demandait deux clics.**
+
+### Cause
+
+La barre est peinte dès le HTML/ CSS, mais son comportement arrive avec `assets/nav.js`, chargé en `defer` : sur une page lourde ou un réseau lent, le bouton est visible (et cliquable) quelques dizaines de millisecondes avant que le script ne soit exécuté. Le premier clic tombait donc dans le vide ; le second, une fois le script en place, ouvrait le panneau. S'y ajoutait un risque de désynchronisation entre la variable d'état du script et la classe `.open` du DOM.
+
+### Correctif
+
+- **amorçage immédiat dans `device.js`** (le seul script bloquant, exécuté dans le `<head>` avant le premier rendu) : un écouteur délégué gère le bouton menu, le voile, `Échap` et le verrou de défilement, avec `aria-expanded` synchronisé. Le bouton fonctionne donc dès le premier pixel affiché, et continue de fonctionner si `nav.js` n'arrive jamais ;
+- **passation propre** : dès que `nav.js` démarre, il pose `window.__dropqrNavReady`, ce qui met l'amorçage en retrait (aucun double basculement) ;
+- **état piloté par le DOM** : `nav.js` lit `.open` sur `#nv` (au lieu d'une variable locale) et adopte l'état déjà ouvert par l'amorçage — le panneau ne se referme plus tout seul sous le doigt ;
+- `setOpen()` est désormais **idempotent** : appliquer deux fois le même état ne produit aucun effet de bord (ni vol de focus, ni déverrouillage du défilement).
+
+### Vérifications
+
+Suite dédiée `burger` (17 assertions) : ouverture au premier clic avec et sans `nav.js`, Échap, voile, passation sans double bascule, alternance fiable sur quatre clics.
+
+- version portée à **1.17.2** (`/api/health`), assets versionnés (`nav.js?v=3`, `device.js?v=2`).

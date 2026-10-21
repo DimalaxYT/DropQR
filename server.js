@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.17.1';
+const APP_VERSION = '1.17.2';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -2025,7 +2025,7 @@ function renderSharePage(req, meta) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=1"></script>
+  <script src="/assets/device.js?v=2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
@@ -2062,7 +2062,7 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=2" defer></script>
+  <script src="/assets/nav.js?v=3" defer></script>
   <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
@@ -2073,7 +2073,7 @@ function renderMessagePage(title, message) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=1"></script>
+  <script src="/assets/device.js?v=2"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
@@ -2094,7 +2094,7 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=2" defer></script>
+  <script src="/assets/nav.js?v=3" defer></script>
   <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;

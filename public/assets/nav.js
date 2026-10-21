@@ -50,10 +50,12 @@
     const path = window.location.pathname.replace(/\/+$/, '') || '/';
     const panelMode = () => media('(max-width: 1040px)');
 
-    // Après un remplacement PJAX, le conteneur #nv survit : on efface les états
-    // laissés par la page précédente (barre escamotée, panneau ouvert).
-    nv.classList.remove('is-hidden', 'open');
-    document.documentElement.classList.remove('nav-open');
+    // Après un remplacement PJAX, le conteneur #nv survit : on efface l'état
+    // « barre escamotée » de la page précédente. L'état du menu, lui, est
+    // adopté tel quel : device.js a pu l'ouvrir avant l'arrivée de ce script,
+    // et le refermer ici ferait « sauter » le panneau sous le doigt.
+    nv.classList.remove('is-hidden');
+    const wasOpen = nv.classList.contains('open') && panelMode();
 
     // Repère pour les technologies d'assistance : le bouton menu pilote la liste.
     if (linksBox && !linksBox.id) linksBox.id = 'nv-links';
@@ -245,31 +247,32 @@
       document.documentElement.classList.toggle('nav-open', lock);
     };
 
+    // L'état de référence est la classe sur #nv : impossible de désynchroniser
+    // la variable et le DOM (c'est ce qui obligeait à cliquer deux fois).
+    const isOpen = () => nv.classList.contains('open');
+
     function setOpen(next, options = {}) {
       const wanted = Boolean(next) && panelMode();
-      if (wanted === open && !options.force) {
-        nv.classList.toggle('open', wanted);
-        if (burger) burger.setAttribute('aria-expanded', String(wanted));
-        return;
-      }
+      const changed = wanted !== open;
       open = wanted;
       nv.classList.toggle('open', open);
       if (burger) burger.setAttribute('aria-expanded', String(open));
-      lockScroll(open && panelMode());
+      lockScroll(open);
       if (open) {
         nv.classList.remove('is-hidden');
+        if (!changed) return;
         window.setTimeout(() => {
           const first = items[0];
           // Si le panneau a été refermé entre-temps, on ne déplace pas le focus.
-          if (open && first && panelMode()) first.focus({ preventScroll: true });
+          if (isOpen() && first && panelMode()) first.focus({ preventScroll: true });
         }, 70);
-      } else if (options.restoreFocus && burger) {
+      } else if (changed && options.restoreFocus && burger) {
         burger.focus({ preventScroll: true });
       }
     }
 
     if (burger) {
-      burger.addEventListener('click', () => setOpen(!open), { signal });
+      burger.addEventListener('click', () => setOpen(!isOpen()), { signal });
     }
     if (scrim) {
       scrim.addEventListener('click', () => setOpen(false, { restoreFocus: true }), { signal });
@@ -279,13 +282,13 @@
       'keydown',
       (event) => {
         if (event.key === 'Escape') {
-          if (open) {
+          if (isOpen()) {
             event.preventDefault();
             setOpen(false, { restoreFocus: true });
           }
           return;
         }
-        if (event.key !== 'Tab' || !open || !panelMode()) return;
+        if (event.key !== 'Tab' || !isOpen() || !panelMode()) return;
         // Focus piégé dans le panneau tant qu'il est ouvert.
         const nodes = focusables();
         if (!nodes.length) return;
@@ -305,7 +308,7 @@
     document.addEventListener(
       'click',
       (event) => {
-        if (!open) return;
+        if (!isOpen()) return;
         if (!nv.contains(event.target)) setOpen(false);
       },
       { signal }
@@ -324,7 +327,7 @@
       // liens : la barre ne doit pas fuir sous le focus. Le bouton menu, lui,
       // peut garder le focus sans bloquer l'escamotage.
       const focusInLinks = Boolean(linksBox && linksBox.contains(document.activeElement));
-      if (next && (open || focusInLinks)) return;
+      if (next && (isOpen() || focusInLinks)) return;
       hidden = next;
       nv.classList.toggle('is-hidden', hidden);
     };
@@ -390,8 +393,11 @@
     // ---------------------------------------------------------------------
     // Démarrage
     // ---------------------------------------------------------------------
-    setOpen(false, { force: true });
+    setOpen(wasOpen, { force: true });
     requestScroll();
+
+    // device.js assurait l'amorçage du bouton menu : il se met en retrait.
+    window.__dropqrNavReady = true;
 
     // La pastille est peinte dans la même frame que le retrait du repli CSS :
     // l'état courant est donc déjà à sa place au premier rendu utile.

@@ -104,6 +104,57 @@
   else updateSwitchLinks();
   window.addEventListener('pjax:load', updateSwitchLinks);
 
+  // ---------------------------------------------------------------------
+  // Menu de la barre : amorçage immédiat
+  // ---------------------------------------------------------------------
+  // Ce fichier est le seul script bloquant (dans <head>) : il s'exécute avant
+  // le premier rendu, alors que nav.js est chargé en `defer` et peut arriver
+  // une ou deux frames plus tard (réseau lent, page lourde). Sans cet
+  // amorçage, le premier clic sur le bouton menu tombait dans le vide : il
+  // fallait cliquer deux fois. Dès que nav.js démarre, il pose
+  // `window.__dropqrNavReady` et reprend entièrement la main.
+  function navFallbackActive() {
+    return !window.__dropqrNavReady;
+  }
+
+  function navRoot() {
+    return document.getElementById('nv');
+  }
+
+  function setMenu(open) {
+    var nv = navRoot();
+    if (!nv) return;
+    nv.classList.toggle('open', open);
+    var burger = nv.querySelector('.nv-burger');
+    if (burger) burger.setAttribute('aria-expanded', String(open));
+    if (open) nv.classList.remove('is-hidden');
+    document.documentElement.classList.toggle('nav-open', open);
+  }
+
+  document.addEventListener('click', function (event) {
+    if (!navFallbackActive()) return; // nav.js gère tout une fois prêt
+    var nv = navRoot();
+    var target = event.target;
+    if (!nv || !target || !target.closest) return;
+    if (target.closest('.nv-burger')) {
+      setMenu(!nv.classList.contains('open'));
+      return;
+    }
+    if (!nv.classList.contains('open')) return;
+    if (target.closest('.nv-scrim') || !nv.contains(target)) setMenu(false);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || !navFallbackActive()) return;
+    var nv = navRoot();
+    if (nv && nv.classList.contains('open')) {
+      event.preventDefault();
+      setMenu(false);
+      var burger = nv.querySelector('.nv-burger');
+      if (burger) burger.focus({ preventScroll: true });
+    }
+  });
+
   window.DropQRDevice = {
     served: served,
     detected: info.view,
