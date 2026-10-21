@@ -255,35 +255,48 @@
       if (restoreFocus && burger) burger.focus({ preventScroll: true });
     };
 
-    // Filet de sécurité : si device.js n'a pas pu s'exécuter (page isolée, test,
-    // fichier bloqué), ce script prend le relais sur le clic. Le test porte sur
-    // l'API elle-même : jamais deux gestionnaires en même temps.
-    if (!window.__dropqrSetMenu && burger) {
-      const setMenuDirect = (next, restoreFocus) => {
-        const open = Boolean(next) && panelMode();
-        nv.classList.toggle('open', open);
-        burger.setAttribute('aria-expanded', String(open));
-        document.documentElement.classList.toggle('nav-open', open);
-        if (open) {
+    // Filet de sécurité : si device.js n'a pas pu s'exécuter (page isolée,
+    // test, fichier bloqué), on synchronise nous-mêmes la case à cocher.
+    // Le panneau, lui, s'ouvre déjà en CSS : même sans ce bloc, le clic marche.
+    if (!window.__dropqrSetMenu) {
+      const toggleEl = nv.querySelector('.nv-toggle');
+
+      const syncFromToggle = (restoreFocus) => {
+        const nextOpen = Boolean(toggleEl && toggleEl.checked);
+        nv.classList.toggle('open', nextOpen);
+        if (burger) burger.setAttribute('aria-expanded', String(nextOpen));
+        document.documentElement.classList.toggle('nav-open', nextOpen);
+        if (nextOpen) {
           nv.classList.remove('is-hidden');
           window.setTimeout(() => {
             const first = items[0];
             if (isOpen() && first) first.focus({ preventScroll: true });
           }, 70);
-        } else if (restoreFocus) {
+        } else if (restoreFocus && burger) {
           burger.focus({ preventScroll: true });
         }
       };
-      burger.addEventListener('click', () => setMenuDirect(!isOpen()), { signal });
-      if (scrim) scrim.addEventListener('click', () => setMenuDirect(false, true), { signal });
+
+      if (toggleEl) {
+        toggleEl.addEventListener('change', () => syncFromToggle(true), { signal });
+      } else if (burger) {
+        burger.addEventListener('click', () => {
+          nv.classList.toggle('open');
+          syncFromToggle(false);
+        }, { signal });
+      }
+
       document.addEventListener('keydown', (event) => {
         if (event.key !== 'Escape' || !isOpen()) return;
         event.preventDefault();
-        setMenuDirect(false, true);
+        if (toggleEl) toggleEl.checked = false;
+        syncFromToggle(true);
       }, { signal });
+
       document.addEventListener('click', (event) => {
         if (!isOpen() || nv.contains(event.target)) return;
-        setMenuDirect(false, false);
+        if (toggleEl) toggleEl.checked = false;
+        syncFromToggle(false);
       }, { signal });
     }
 

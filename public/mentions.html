@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=3"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <link rel="icon" href="/favicon.ico" sizes="48x48">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -14,11 +14,12 @@
   <link rel="stylesheet" href="/assets/pages.css?v=5">
   <link rel="stylesheet" href="/assets/code-slots.css?v=2">
   <link rel="stylesheet" href="/assets/receive.css?v=3">
-  <link rel="stylesheet" href="/assets/nav.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="nv" id="nv">
+    <input class="nv-toggle" type="checkbox" id="nv-menu" aria-hidden="true" tabindex="-1">
     <div class="nv-bar">
       <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
@@ -32,10 +33,10 @@
       <div class="nv-right">
         <div class="nav-auth" data-discord-auth></div>
         <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
-        <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+        <label class="nv-burger" for="nv-menu" role="button" tabindex="0" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></label>
       </div>
     </div>
-    <span class="nv-scrim" aria-hidden="true"></span>
+    <label class="nv-scrim" for="nv-menu" aria-hidden="true"></label>
     <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
@@ -76,7 +77,7 @@
       <span class="colophon">Free unlimited file sharing — drop, share, done.</span>
     </footer>
   </div>
-  <script src="/assets/nav.js?v=4" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
   <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>

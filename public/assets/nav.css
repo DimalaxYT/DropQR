@@ -221,6 +221,25 @@ html.pjax-loading .nv-progress i {
 .nv-brand .nv-word { line-height: 1; }
 
 /* ==========================================================================
+   Interrupteur du menu (aucun JavaScript requis)
+   ========================================================================== */
+/* La case à cocher est le seul état du panneau : un clic sur le bouton (un
+   <label for="nv-menu">) la bascule nativement, et le CSS ouvre le panneau.
+   Même si tous les scripts échouent ou arrivent en retard, le menu s'ouvre. */
+.nv-toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+/* ==========================================================================
    Liens centraux (segmented control)
    ========================================================================== */
 .nv-links {
@@ -503,10 +522,21 @@ html.nv-js .nv .nv-links a.nv-link.is-current { background: transparent; }
 .nv-burger span::before { transform: translateY(-5px); }
 .nv-burger span::after { transform: translateY(5px); }
 
-.nv.open .nv-burger { border-color: rgba(139, 124, 255, .6); background: rgba(139, 124, 255, .16); }
-.nv.open .nv-burger span { background: transparent; }
-.nv.open .nv-burger span::before { transform: rotate(45deg); }
-.nv.open .nv-burger span::after { transform: rotate(-45deg); }
+.nv.open .nv-burger,
+.nv-toggle:checked ~ .nv-bar .nv-burger { border-color: rgba(139, 124, 255, .6); background: rgba(139, 124, 255, .16); }
+
+.nv.open .nv-burger span,
+.nv-toggle:checked ~ .nv-bar .nv-burger span { background: transparent; }
+
+.nv.open .nv-burger span::before,
+.nv-toggle:checked ~ .nv-bar .nv-burger span::before { transform: rotate(45deg); }
+
+.nv.open .nv-burger span::after,
+.nv-toggle:checked ~ .nv-bar .nv-burger span::after { transform: rotate(-45deg); }
+
+/* Le bouton est un <label> : il doit se comporter comme un bouton. */
+.nv-burger { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.nv-burger:focus-visible { outline: 2px solid rgba(139, 124, 255, .8); outline-offset: 2px; }
 
 /* ==========================================================================
    Progression de lecture (en haut de la fenêtre)
@@ -565,7 +595,8 @@ html.pjax-loading .nv-progress i {
   transition: opacity .3s ease, visibility 0s linear .3s;
 }
 
-.nv.open .nv-scrim {
+.nv.open .nv-scrim,
+.nv-toggle:checked ~ .nv-scrim {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -576,6 +607,12 @@ html.pjax-loading .nv-progress i {
 
 html.nav-open,
 html.nav-open body { overflow: hidden; }
+
+/* Même chose sans JavaScript, quand :has() est disponible. */
+@supports selector(:has(*)) {
+  html:has(.nv-toggle:checked),
+  html:has(.nv-toggle:checked) body { overflow: hidden; }
+}
 
 /* Compense la barre de défilement qui disparaît quand le panneau s'ouvre
    (largeur mesurée en JS dans --nv-sbw), pour éviter un saut de mise en page. */
@@ -618,7 +655,8 @@ html.nav-open body { padding-right: var(--nv-sbw, 0px); }
     transition: opacity .24s ease, transform .32s var(--ease-silk), visibility 0s linear .24s;
   }
 
-  .nv.open .nv-links {
+  .nv.open .nv-links,
+  .nv-toggle:checked ~ .nv-bar .nv-links {
     opacity: 1;
     visibility: visible;
     transform: none;
@@ -640,7 +678,8 @@ html.nav-open body { padding-right: var(--nv-sbw, 0px); }
     transition: opacity .22s ease, transform .3s var(--ease-silk), background .2s ease, color .2s ease;
   }
 
-  .nv.open .nv-links a {
+  .nv.open .nv-links a,
+  .nv-toggle:checked ~ .nv-bar .nv-links a {
     opacity: 1;
     transform: none;
     transition-delay: calc(var(--nv-i, 0) * 34ms);

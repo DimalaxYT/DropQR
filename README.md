@@ -606,3 +606,30 @@ Après la 1.17.2, deux scripts pouvaient se disputer le clic sur le bouton : `de
 Suite `burger` portée à **21 assertions** : ouverture au premier clic avec `device.js`, sans `device.js`, avec les deux, passation sans double bascule, `Échap`, voile, alternance fiable sur quatre clics, aucune erreur JS.
 
 - version portée à **1.17.3** (`/api/health`), assets versionnés (`device.js?v=3`, `nav.js?v=4`, `nav.css?v=5`).
+
+## Version 1.18.0
+
+**Le menu ne dépend plus d'aucun JavaScript.**
+
+Trois correctifs successifs n'avaient pas suffi : le panneau restait capricieux selon les navigateurs et les caches. La cause profonde est que l'ouverture reposait *entièrement* sur du script (classe `.open` posée en JS). Désormais, c'est le HTML natif qui ouvre le menu.
+
+### Comment
+
+- le bouton « ≡ » est un `<label for="nv-menu">` et le voile un second `<label>` ; l'état vit dans une **case à cocher** (`<input type="checkbox" id="nv-menu">`) placée en tête de `#nv` ;
+- le CSS réagit directement à `:checked` (`.nv-toggle:checked ~ .nv-bar .nv-links`, `… .nv-burger`, `… .nv-scrim`) : **le panneau s'ouvre et se ferme même si tous les scripts échouent, sont bloqués ou périmés** ; vérifié dans un vrai navigateur avec JavaScript totalement désactivé ;
+- le verrou de défilement a aussi un repli CSS (`html:has(.nv-toggle:checked)`), et `Échap` / `Entrée` / `Espace` restent gérés par le script quand il est là ;
+- `device.js` écoute `change` sur la case (un seul chemin, aucun double basculement) et synchronise `aria-expanded`, la classe `.open`, le verrou et le focus ; `nav.js` reste en charge de la pastille, du scroll-spy et du piège de tabulation ;
+- après un PJAX, la case repart décochée et l'état est réaligné (`pjax:load`) : aucun panneau fantôme ;
+- **assets en `Cache-Control: no-cache, must-revalidate`** : un cache de proxy qui ignorerait la query string ne peut plus servir un script périmé (revalidation ETag → 304, coût négligeable).
+
+### Accessibilité conservée
+
+`role="button"`, `tabindex="0"`, `aria-label`, `aria-expanded` et `aria-controls="nv-links"` sur le bouton ; `Entrée` / `Espace` l'activent au clavier ; le focus entre dans le panneau puis revient au bouton à la fermeture.
+
+### Vérifié
+
+- **Chromium réel** (headless) : ouverture au premier clic sur les 6 pages, aux largeurs 1200 / 900 / 700 / 430 px, **avec et sans JavaScript** ;
+- parcours complet : ouverture → navigation PJAX → réouverture → défilement → réouverture → clic extérieur, sans erreur console ;
+- suites : burger 21/21, nav 41/41, pjax 13/13, receive-v2 49/49, e2e 10/10, test 24, mobile 12, CSS 6 feuilles, smoke OK.
+
+- version portée à **1.18.0** (`/api/health`), assets versionnés (`nav.css?v=6`, `nav.js?v=5`, `device.js?v=4`).

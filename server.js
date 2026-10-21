@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.17.3';
+const APP_VERSION = '1.18.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1090,9 +1090,10 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/api', apiRateLimiter);
 app.use('/api/transfers', uploadRateLimiter);
 app.use('/assets', (req, res, next) => {
-  // Les assets sont versionnés dans le HTML: ils peuvent être gardés en cache
-  // sans ralentir les changements de page entre deux écrans.
-  res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+  // Les assets sont versionnés dans le HTML, mais on demande une revalidation
+  // systématique : un cache de proxy qui ignorerait la query string ne peut
+  // plus servir une feuille ou un script périmé (ETag -> 304, coût minime).
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
   // Le middleware global pose `Pragma: no-cache` et `Expires: 0` : contradictoire
   // avec le cache long et respecté par certains proxys, ce qui forçait à
   // re-télécharger les feuilles et scripts à chaque page (barre lente à peindre).
@@ -1980,6 +1981,7 @@ function publicTransferPayload(req, meta) {
 // En-tête et pied de page partagés avec les pages statiques (design landing).
 function renderSiteHeader() {
   return `  <header class="nv" id="nv">
+    <input class="nv-toggle" type="checkbox" id="nv-menu" aria-hidden="true" tabindex="-1">
     <div class="nv-bar">
       <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
       <nav class="nv-links" id="nv-links" aria-label="Primary">
@@ -1993,10 +1995,10 @@ function renderSiteHeader() {
       <div class="nv-right">
         <div class="nav-auth" data-discord-auth></div>
         <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
-        <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+        <label class="nv-burger" for="nv-menu" role="button" tabindex="0" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></label>
       </div>
     </div>
-    <span class="nv-scrim" aria-hidden="true"></span>
+    <label class="nv-scrim" for="nv-menu" aria-hidden="true"></label>
     <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>`;
 }
@@ -2025,7 +2027,7 @@ function renderSharePage(req, meta) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=3"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
@@ -2035,7 +2037,7 @@ function renderSharePage(req, meta) {
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -2062,7 +2064,7 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=4" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
   <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
@@ -2073,13 +2075,13 @@ function renderMessagePage(title, message) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=3"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
   <link rel="stylesheet" href="/assets/pages.css?v=5">
-  <link rel="stylesheet" href="/assets/nav.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
@@ -2094,7 +2096,7 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/nav.js?v=4" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
   <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
