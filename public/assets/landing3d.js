@@ -816,7 +816,6 @@ import * as THREE from '/assets/vendor/three.module.min.js';
     pointer.active = true;
   }, { passive: true });
 
-  const nv = document.getElementById('nv');
   const dz = document.getElementById('dropzone');
   const storyEl = document.getElementById('story');
 
@@ -1138,10 +1137,8 @@ import * as THREE from '/assets/vendor/three.module.min.js';
     });
   })();
 
-  /* nav scrolled */
-  function onScrollNav() { nv && nv.classList.toggle('scrolled', window.scrollY > 28); }
-  window.addEventListener('scroll', onScrollNav, { passive: true });
-  onScrollNav();
+  /* La barre de navigation (menu, pastille, progression, escamotage) est gérée
+     par assets/nav.js, commun à toutes les pages. */
 
   /* ------------------------------------------------ boucle principale */
   const clock = new THREE.Clock();

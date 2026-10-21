@@ -104,6 +104,114 @@
   else updateSwitchLinks();
   window.addEventListener('pjax:load', updateSwitchLinks);
 
+  // ---------------------------------------------------------------------
+  // Menu de la barre : un seul propriétaire
+  // ---------------------------------------------------------------------
+  // Ce fichier est le seul script bloquant (dans <head>) : il s'exécute avant
+  // le premier rendu. C'est donc lui qui possède l'état du menu — et lui seul.
+  // L'écouteur est délégué au document : il survit aux remplacements PJAX de
+  // #nv, il est actif dès le premier pixel et il ne peut pas « manquer » parce
+  // qu'un autre script serait arrivé en retard. nav.js ne fait que s'abonner
+  // à l'événement `nav:menu` pour le focus et le verrou de défilement.
+  function navRoot() {
+    return document.getElementById('nv');
+  }
+
+  function setMenu(open, options) {
+    var nv = navRoot();
+    if (!nv) return;
+    var opts = options || {};
+    var wasOpen = nv.classList.contains('open');
+    // La case à cocher est la source native (le CSS s'en sert directement).
+    var toggle = nv.querySelector('.nv-toggle');
+    if (toggle && toggle.checked !== open) toggle.checked = open;
+    if (open && !wasOpen) {
+      // Compense la barre de défilement qui disparaît (voir nav.css).
+      var sbw = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+      document.documentElement.style.setProperty('--nv-sbw', sbw + 'px');
+    }
+    nv.classList.toggle('open', open);
+    if (open) nv.classList.remove('is-hidden');
+    var burger = nv.querySelector('.nv-burger');
+    if (burger) burger.setAttribute('aria-expanded', String(open));
+    document.documentElement.classList.toggle('nav-open', open);
+    if (wasOpen === open) return;
+    var detail = { open: open, restoreFocus: !!opts.restoreFocus };
+    var evt = null;
+    try {
+      evt = new CustomEvent('nav:menu', { bubbles: true, detail: detail });
+    } catch (_error) {
+      evt = document.createEvent('CustomEvent');
+      evt.initCustomEvent('nav:menu', true, false, detail);
+    }
+    nv.dispatchEvent(evt);
+  }
+
+  // Exposé pour nav.js (clics sur les liens, redimensionnement).
+  window.__dropqrSetMenu = setMenu;
+
+  function handleMenuClick(event) {
+    var nv = navRoot();
+    var target = event.target;
+    if (!nv || !target || !target.closest) return;
+    // Le bouton et le voile sont des <label for="nv-menu"> : le navigateur
+    // bascule la case tout seul, sans une ligne de JavaScript. On se contente
+    // d'écouter `change` plus bas (un seul chemin, aucun double basculement).
+    // Bouton ET voile sont des <label for="nv-menu"> : le navigateur bascule la
+    // case tout seul et `change` fait le reste. Toucher à l'état ici fermerait
+    // puis rouvrirait le panneau (la bascule native arriverait après nous).
+    if (target.closest('.nv-burger') || target.closest('.nv-scrim')) return;
+    if (!nv.classList.contains('open')) return;
+    if (!nv.contains(target)) setMenu(false);
+  }
+
+  document.addEventListener('click', function (event) {
+    try {
+      handleMenuClick(event);
+    } catch (error) {
+      // Un clic sur le menu ne doit jamais rester sans effet ni sans trace.
+      console.error('DropQR menu:', error);
+      var nv = navRoot();
+      if (nv) nv.classList.toggle('open');
+    }
+  });
+
+  // Après un remplacement PJAX de #nv, la case repart décochée : on réaligne
+  // la classe et le verrou pour qu'aucun état fantôme ne subsiste.
+  window.addEventListener('pjax:load', function () {
+    var nv = navRoot();
+    if (!nv) return;
+    var toggle = nv.querySelector('.nv-toggle');
+    var checked = !!(toggle && toggle.checked);
+    nv.classList.toggle('open', checked);
+    document.documentElement.classList.toggle('nav-open', checked);
+    var burger = nv.querySelector('.nv-burger');
+    if (burger) burger.setAttribute('aria-expanded', String(checked));
+  });
+
+  document.addEventListener('change', function (event) {
+    var target = event.target;
+    if (!target || !target.classList || !target.classList.contains('nv-toggle')) return;
+    setMenu(!!target.checked, { restoreFocus: !target.checked });
+  });
+
+  document.addEventListener('keydown', function (event) {
+    var focused = event.target;
+    // Un <label> ne réagit pas au clavier : on le compense ici.
+    if (focused && focused.closest && focused.closest('.nv-burger')
+      && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) {
+      event.preventDefault();
+      var root = navRoot();
+      if (root) setMenu(!root.classList.contains('open'));
+      return;
+    }
+    if (event.key !== 'Escape') return;
+    var nv = navRoot();
+    if (!nv || !nv.classList.contains('open')) return;
+    event.preventDefault();
+    setMenu(false, { restoreFocus: true });
+  });
+
   window.DropQRDevice = {
     served: served,
     detected: info.view,

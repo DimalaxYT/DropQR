@@ -5,11 +5,13 @@ DropQR est un site multi-pages pour transférer temporairement des fichiers entr
 ## Pages
 
 - `/` : accueil — expérience WebGL 3D immersive (scroll cinématique, Drop Zone fonctionnelle)
+- barre de navigation commune (`assets/nav.css` pour le style, `assets/nav.js` pour le comportement) : barre flottante en verre, liens segmentés, pastille qui glisse sous le lien survolé, repérage de la section au défilement, escamotage automatique, progression de lecture, panneau de menu animé sur petit écran
 - `/upload` : création d’un transfert avec barre de progression
-- `/receive` : recherche d’un transfert par code
+- `/receive` : console de récupération — saisie en **Code Slots** (7 cases animées, adaptation du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots)), **scan de QR** (caméra ou image), codes récents, compte à rebours d’expiration
 - `/dashboard` : transferts créés depuis le navigateur, avec suppression manuelle par clé privée
 - `/help` : aide, déploiement et explication du QR code dans la preview Arena
 - `/mentions` : mentions légales, confidentialité et données traitées
+- **logo et icônes** : `favicon.ico`, `favicon.svg`, `apple-touch-icon.png`, `icon-192/512.png` et `site.webmanifest` (installable, raccourcis Envoyer / Recevoir)
 - `/t/:id` : page publique de téléchargement
 
 ## Version PC / version téléphone (détection automatique)
@@ -19,7 +21,7 @@ Les pages `/`, `/upload`, `/receive` et `/dashboard` existent en deux versions, 
 - **PC** : `public/*.html` (landing WebGL 3D, mise en page large) ;
 - **Téléphone** : `public/mobile/*.html` + `assets/mobile.css` + `assets/mobile.js` (pas de WebGL, barre d’onglets en bas, gros boutons, boutons *Appareil photo* / *Galerie*, partage natif, bouton *Coller* pour le code, écran maintenu allumé pendant l’envoi).
 
-La logique métier est partagée (`upload.js`, `receive.js`, `dashboard.js` : mêmes identifiants HTML).
+La logique métier est partagée (`upload.js`, `receive.js`, `dashboard.js` : mêmes identifiants HTML). La saisie du code utilise le même composant dans les deux versions (`assets/code-slots.js` + `assets/code-slots.css`).
 
 Détection, dans l’ordre de priorité :
 
@@ -430,3 +432,204 @@ Nouvelle page d'accueil : **expérience WebGL 3D immersive** (`/`) :
 - le slot de connexion **Discord** (v1.11.0) est conservé dans la nouvelle barre de navigation.
 
 La page classique reste accessible : `/upload`, `/receive`, `/dashboard`, `/help` et `/mentions` sont inchangées.
+
+## Version 1.13.0
+
+Saisie du code en **Code Slots « neon deck »** sur la page Recevoir (PC et téléphone) :
+
+- rangée de 7 cases posée sur une **plaque de verre** à bordure conique animée, adaptation très libre du composant [Code Slots de React Bits](https://reactbits.dev/micro/code-slots) — **sans React ni dépendance** : `public/assets/code-slots.js` + `public/assets/code-slots.css`, chargés en same-origin (CSP `script-src 'self'` respectée) ;
+- chaque caractère **atterrit en 3D** avec rebond, blur et onde circulaire, un reflet balaie la case ; les caractères effacés basculent et tombent avant de vider la case ; une cascade de 20 ms sépare les caractères qui arrivent d’un coup (collage, `?code=…`) ;
+- **micro-interactions** : tilt 3D + halo lumineux qui suivent le pointeur (souris uniquement), curseur qui pulse dans la case active, cases qui « respirent » en vague quand le champ est vide et actif ;
+- **barre de progression** de la saisie sous les cases, qui change de couleur selon l’état ;
+- états : **recherche** (balayage lumineux + bordure qui tourne), **erreur** (teinte rouge, glitch chromatique, secousse, code conservé pour correction) et **succès** (cascade verte, halo), en complément du message texte déjà présent ;
+- **retour haptique** sur téléphone (vibration courte à chaque case, motif d’erreur/succès) ;
+- saisie instantanée : majuscules forcées, séparateurs et liens collés (`…/receive?code=Q7R4M2K`, `/c/Q7R4M2K`) nettoyés, recherche lancée automatiquement à la 7ᵉ case ;
+- le vrai `<input>` reste dans le DOM (label, clavier, collage, `aria-invalid`, `role="status"` sur le message) : sans JavaScript, le champ s’affiche et fonctionne exactement comme avant ;
+- formulaire de réception rapide de l’accueil téléphone équipé du même composant ;
+- `prefers-reduced-motion` : animations, tilt, scan et secousse désactivés ;
+- version portée à **1.13.0** (`/api/health`).
+
+## Version 1.14.0
+
+La page **Recevoir** devient une console de récupération complète (PC et téléphone) :
+
+- **mise en page en deux colonnes** : la console de saisie (titre éditorial, deck Code Slots, actions) à gauche ; le panneau d’état à droite, avec trois états animés — *attente* (sonar lumineux + rappel des 3 étapes), *erreur* (glyphe + message + bouton « Corriger le code ») et *transfert trouvé* ;
+- **scan de QR intégré** : bouton *Scanner* qui ouvre un scanner plein écran avec caméra arrière (`getUserMedia`) et décode les images via **jsQR** chargé à la demande (`assets/vendor/jsqr.js`, Apache-2.0, uniquement au premier scan) ; repli sur une image de la galerie, et sur la saisie manuelle si la caméra est refusée ou absente ;
+- **codes récents** : les 4 derniers transferts consultés sont mémorisés localement (`localStorage`), affichés en puces cliquables avec le nom du fichier et l’ancienneté, effaçables en un clic ;
+- **panneau résultat enrichi** : icône par type de fichier (vidéo / image / audio / archive), **compte à rebours vivant** avec barre qui passe au rouge dans la dernière minute, métadonnées, aperçu vidéo, téléchargement, copie du lien, partage natif et bouton *Actualiser* ;
+- **collage intelligent** : bouton *Coller* (code brut, `?code=`, `/c/CODE` ou lien `/t/ID`), et collage n’importe où dans la page redirigé vers le champ ;
+- **raccourcis clavier** : `/` pour saisir, `Entrée` pour rechercher, `Échap` pour vider ou fermer le scanner ;
+- **URL synchronisée** (`?code=…`) après une recherche réussie : rechargement et partage directs ;
+- **erreurs expliquées** : introuvable (404), expiré/supprimé (410), trop de requêtes (429), serveur — chacune avec son titre et son message ;
+- **toasts** pour les retours discrets, vibrations sur téléphone, `prefers-reduced-motion` respecté, et **nettoyage des minuteries / de la caméra** à chaque navigation PJAX ;
+- version portée à **1.14.0** (`/api/health`).
+
+## Version 1.15.0
+
+Refonte de la barre de navigation et nouvelle passe sur la page Recevoir.
+
+### Barre de navigation (`assets/nav.css`, commune à toutes les pages)
+
+- **barre flottante en verre dépoli** (largeur maximale 1240 px, rayon 20 px, flou 20 px + saturation, liseré lumineux) au lieu de la bande pleine largeur ; elle se compacte et s’opacifie au défilement ;
+- **marque retravaillée** : marque QR en relief avec module violet lumineux qui pivote au survol, mot-symbole resserré ;
+- **liens segmentés** dans un conteneur translucide, état de page courante calculé par `site.js` (`.is-current` + `aria-current`), et **chip *Receive*** mise en avant avec dégradé violet → bleu quand on est sur `/receive` ;
+- **CTA à pastille** : libellé + flèche dans une pastille sombre, effet d’élévation au survol ;
+- **progression de lecture** : fine ligne dégradée fixée en haut de la fenêtre, mise à jour au `requestAnimationFrame` ;
+- **menu en panneau de verre** sous 1040 px : lignes de 48 px avec pastille d’état, chip Receive pleine largeur, ouverture/fermeture au clavier (`Échap`), fermeture au clic extérieur, `aria-expanded` synchronisé ;
+- version téléphone (`header.nv.m-top`) : barre compacte avec CTA contextuel (*Envoyer* / *Recevoir*) au-dessus de la barre d’onglets ;
+- le balisage est **identique sur toutes les pages** (y compris celles rendues par le serveur) pour que le remplacement PJAX de `#nv` reste cohérent ; `site.js` tolère désormais l’absence de `matchMedia`.
+
+### Page Recevoir
+
+- **bandeau de capacités** sous le titre (expiration par défaut, taille maximale, durée maximale) alimenté par `GET /api/config` ;
+- espacement recalculé pour la nouvelle barre flottante, `scroll-margin` sur la carte de résultat pour les remontées automatiques sur téléphone.
+
+### Divers
+
+- version portée à **1.15.0** (`/api/health`) ; feuilles et scripts versionnés (`nav.css?v=1`, `receive.css?v=2`, `receive.js?v=10`, `site.js?v=17`).
+
+## Version 1.16.0
+
+**Logo DropQR** et nouvelle passe sur Recevoir.
+
+### Le logo
+
+- dessin original : une **goutte** en dégradé violet → bleu (le « drop » de DropQR) dont le cœur est un **motif QR** (trois modules + un point), sur une tuile sombre arrondie avec halo et reflet ;
+- trois déclinaisons : `assets/logo.svg` (statique), `assets/logo-anim.svg` (modules qui clignotent doucement + halo qui respire, respecté uniquement dans la barre de navigation), et les rasterisations d’icônes ;
+- **favicon complet** : `favicon.ico` (16/32/48), `favicon.svg` (navigateurs modernes), `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png`, plus `site.webmanifest` (nom, couleurs, mode standalone, raccourcis *Envoyer* / *Recevoir*) — DropQR peut désormais être installé comme application ;
+- routes serveur explicites pour ces fichiers (types MIME et cache corrects, `manifest-src 'self'` ajouté à la CSP) ;
+- le logo remplace l’ancienne marque dessinée en CSS dans la barre (survol : légère rotation + halo), apparaît dans le pied de page et comme **emblème** à côté du libellé de section sur `/receive` ; `alt=""` + `aria-hidden` car le mot-symbole texte porte déjà le nom.
+
+### Page Recevoir
+
+- emblème de marque encadré à côté de « 03 / RECEIVE », avec liseré dégradé ;
+- pied de page aligné verticalement avec le logo.
+
+### Nettoyage
+
+- les anciennes règles de barre de navigation, de menu burger et de boutons `nv-app` ont été retirées de `pages.css`, `landing.css` et `mobile.css` : tout est désormais dans `nav.css`, sans doublons qui se battaient en cascade ;
+- version portée à **1.16.0** (`/api/health`), assets versionnés (`nav.css?v=2`, `pages.css?v=5`, `mobile.css?v=3`, `landing.css?v=5`, `receive.css?v=3`).
+
+## Version 1.17.0
+
+**La barre de navigation prend vie** : toute sa logique a été sortie des pages dans un module unique, `assets/nav.js`.
+
+### Comportement (`assets/nav.js`)
+
+- un seul module pour toutes les pages, chargé avant `site.js` ; il retrouve ses éléments à chaque initialisation, se réinstalle après chaque navigation PJAX (`pjax:load`) et **annule proprement ses anciens écouteurs** (`AbortController`) pour ne jamais empiler les handlers ;
+- **pastille glissante** : un halo dégradé se déplace sous le lien survolé ou sélectionné au clavier (`--nv-pill-x`, `--nv-pill-w`), puis revient sous le lien de la page courante quand la souris repart ; repositionnée après le chargement de la police et au redimensionnement (`ResizeObserver`), donc jamais décalée ;
+- **repérage de section** sur la landing : `IntersectionObserver` (`rootMargin: -25% / -55%`) marque le lien de la section visible (`#product`, `#how`, `#faq`), en haut de page on revient à « aucun lien » et une seule entrée est courante à la fois ;
+- **escamotage au défilement** : la barre s’efface en descendant (au-delà de 340 px), revient dès qu’on remonte de 6 px ou qu’on approche du haut de page, et **ne s’efface jamais** quand le menu est ouvert ou que le clavier parcourt les liens ;
+- **menu mobile** : panneau ouvert sous 1040 px avec voile cliquable (`.nv-scrim`), verrou de défilement (`html.nav-open`), apparition des liens en cascade (`--nv-i`), **piège de focus** (Tab boucle dans le panneau), `Échap` et clic extérieur pour fermer, focus rendu au bouton menu, `aria-expanded` synchronisé ;
+- **progression de lecture** lissée en `requestAnimationFrame`, et `prefers-reduced-motion` respecté (pastille et panneau sans transition).
+
+### Accessibilité
+
+- **lien d’évitement** « Aller au contenu » en première position dans chaque page (visible au focus), cible `<main id="main" tabindex="-1">` ;
+- `aria-current="page"` sur le lien courant, `aria-expanded` / `aria-controls` sur le bouton menu, voile marqué `aria-hidden` ;
+- contraste et focus visibles conservés sur fond de verre.
+
+### Nettoyage
+
+- les blocs de gestion de la barre ont été **retirés de `site.js` et de `landing3d.js`** : plus de doublons d’écouteurs ni de comportement qui différait d’une page à l’autre ; le balisage reste identique partout (pages statiques, rendu serveur, page de partage) ;
+- `assets/nav.js` ajouté au contrôle `npm run check` ;
+- version portée à **1.17.0** (`/api/health`), assets versionnés (`nav.css?v=3`, `site.js?v=17`, `nav.js?v=1`).
+
+## Version 1.17.1
+
+**Passe de vitesse et de fiabilité sur la barre de navigation**, après un audit page par page (desktop, version téléphone, pages rendues par le serveur, 404).
+
+### Ce qui rendait la barre lente
+
+- **préchargement trop large** : `site.js` réchauffait *tous* les liens internes de la page (9 requêtes, chacune un rendu HTML complet) juste après le chargement, pendant que l’utilisateur commençait à cliquer ; il se limite maintenant aux liens de la barre, espacés de 120 ms ;
+- **requêtes dupliquées** : un clic pendant un préchargement relançait une requête ; un cache de promesses en vol (`pjaxInflight`) fait que le clic réutilise la requête déjà partie ;
+- **aucun retour avant la fin du réseau** : la ligne de progression passe désormais en **balayage animé dès le clic** (`html.pjax-loading`), et au-delà de 2,5 s la navigation classique du navigateur prend le relais plutôt que de laisser la page figée ;
+- **cache des assets contradictoire** : le middleware global posait `Pragma: no-cache` / `Expires: 0`, respectés par certains proxys malgré le `Cache-Control` long ; ces en-têtes sont retirés pour `/assets` et les icônes, les feuilles et scripts sont donc réellement réutilisés d’une page à l’autre ;
+- **flou plus cher que nécessaire** : `backdrop-filter: blur(20px) saturate(1.4)` sur une barre fixe au-dessus d’un fond animé, ramené à `blur(12px)` et promu sur son propre calque ;
+- **état courant calculé en JS** : la barre restait « neutre » le temps de mesurer les liens. L’état courant est maintenant peint en CSS dès le premier rendu, puis la pastille prend le relais quand elle est positionnée (`html.nv-js`).
+
+### Bugs corrigés
+
+- la **landing** arrivait avec **trois liens marqués courants** (`Product`, `How it works`, `FAQ`) : un seul au plus désormais, et `aria-current="location"` pour les ancres de section ;
+- la **pastille disparaissait sous la chip *Receive*** (remplissage dégradé opaque) : elle n’y va plus du tout ;
+- **pastille lente** : transitions ramenées à 220 ms, et premier placement sans animation (`is-instant`) ;
+- **mesures refaites à chaque survol** (forçage de mise en page) : positions mises en cache, invalidées au redimensionnement, au chargement des polices et à chaque navigation ;
+- règles de menu **héritées de `pages.css`** supprimées : le panneau n’est plus décrit par deux feuilles concurrentes ;
+- **cohérence du balisage** : `aria-current` déjà présent dans le HTML de `/receive` et `/help` (utile sans JavaScript), `is-current` retiré de la landing ;
+- après un **PJAX**, l’état escamoté/ouvert de la barre est nettoyé avant réinstallation (la barre ne peut plus rester cachée sur la nouvelle page).
+
+### Divers
+
+- version portée à **1.17.1** (`/api/health`), assets versionnés (`nav.css?v=4`, `nav.js?v=2`, `site.js?v=18`).
+
+## Version 1.17.2
+
+**Correctif : le bouton menu de la barre (« ≡ ») demandait deux clics.**
+
+### Cause
+
+La barre est peinte dès le HTML/ CSS, mais son comportement arrive avec `assets/nav.js`, chargé en `defer` : sur une page lourde ou un réseau lent, le bouton est visible (et cliquable) quelques dizaines de millisecondes avant que le script ne soit exécuté. Le premier clic tombait donc dans le vide ; le second, une fois le script en place, ouvrait le panneau. S'y ajoutait un risque de désynchronisation entre la variable d'état du script et la classe `.open` du DOM.
+
+### Correctif
+
+- **amorçage immédiat dans `device.js`** (le seul script bloquant, exécuté dans le `<head>` avant le premier rendu) : un écouteur délégué gère le bouton menu, le voile, `Échap` et le verrou de défilement, avec `aria-expanded` synchronisé. Le bouton fonctionne donc dès le premier pixel affiché, et continue de fonctionner si `nav.js` n'arrive jamais ;
+- **passation propre** : ce mécanisme a été remplacé en 1.17.3 par un propriétaire unique (voir plus bas) ;
+- **état piloté par le DOM** : `nav.js` lit `.open` sur `#nv` (au lieu d'une variable locale) et adopte l'état déjà ouvert par l'amorçage — le panneau ne se referme plus tout seul sous le doigt ;
+- `setOpen()` est désormais **idempotent** : appliquer deux fois le même état ne produit aucun effet de bord (ni vol de focus, ni déverrouillage du défilement).
+
+### Vérifications
+
+Suite dédiée `burger` (17 assertions) : ouverture au premier clic avec et sans `nav.js`, Échap, voile, passation sans double bascule, alternance fiable sur quatre clics.
+
+- version portée à **1.17.2** (`/api/health`), assets versionnés (`nav.js?v=3`, `device.js?v=2`).
+
+## Version 1.17.3
+
+**Le menu de la barre a désormais un seul propriétaire.**
+
+Après la 1.17.2, deux scripts pouvaient se disputer le clic sur le bouton : `device.js` (amorçage) et `nav.js`. Selon l'ordre d'exécution, le drapeau censé départager les deux pouvait laisser un clic sans effet. Plutôt que d'empiler un garde-fou de plus, l'architecture a été simplifiée.
+
+### Un seul propriétaire
+
+- **`device.js`** (script bloquant du `<head>`, exécuté avant le premier rendu) possède l'état du menu : ouverture/fermeture, voile, `Échap`, clic extérieur, `aria-expanded`, verrou de défilement et compensation de la barre de défilement (`--nv-sbw`). Son écouteur est **délégué au document**, il survit donc aux remplacements PJAX de `#nv` ;
+- il expose `window.__dropqrSetMenu(open, options)` et diffuse un événement **`nav:menu`** ;
+- **`nav.js` ne pose plus aucun écouteur de clic sur le bouton** : il s'abonne à `nav:menu` pour le focus (premier lien du panneau, retour sur le bouton), garde le piège de tabulation, referme le panneau quand on suit un lien ou quand on repasse en grand écran. Deux gestionnaires concurrents ne peuvent donc plus s'annuler ;
+- **repli intégré** : si `device.js` est absent (page isolée, fichier bloqué), `nav.js` reprend le clic — vérifié sur l'API, jamais en même temps ;
+- le gestionnaire est protégé par un `try/catch` : une erreur éventuelle est journalisée et le panneau bascule quand même, au lieu d'avaler le clic en silence.
+
+### Rendu
+
+- `transform: translateZ(0)` retiré de `.nv-bar` : combiné à `backdrop-filter`, il pouvait décaler la zone peinte et la zone cliquable selon le moteur.
+
+### Vérifications
+
+Suite `burger` portée à **21 assertions** : ouverture au premier clic avec `device.js`, sans `device.js`, avec les deux, passation sans double bascule, `Échap`, voile, alternance fiable sur quatre clics, aucune erreur JS.
+
+- version portée à **1.17.3** (`/api/health`), assets versionnés (`device.js?v=3`, `nav.js?v=4`, `nav.css?v=5`).
+
+## Version 1.18.0
+
+**Le menu ne dépend plus d'aucun JavaScript.**
+
+Trois correctifs successifs n'avaient pas suffi : le panneau restait capricieux selon les navigateurs et les caches. La cause profonde est que l'ouverture reposait *entièrement* sur du script (classe `.open` posée en JS). Désormais, c'est le HTML natif qui ouvre le menu.
+
+### Comment
+
+- le bouton « ≡ » est un `<label for="nv-menu">` et le voile un second `<label>` ; l'état vit dans une **case à cocher** (`<input type="checkbox" id="nv-menu">`) placée en tête de `#nv` ;
+- le CSS réagit directement à `:checked` (`.nv-toggle:checked ~ .nv-bar .nv-links`, `… .nv-burger`, `… .nv-scrim`) : **le panneau s'ouvre et se ferme même si tous les scripts échouent, sont bloqués ou périmés** ; vérifié dans un vrai navigateur avec JavaScript totalement désactivé ;
+- le verrou de défilement a aussi un repli CSS (`html:has(.nv-toggle:checked)`), et `Échap` / `Entrée` / `Espace` restent gérés par le script quand il est là ;
+- `device.js` écoute `change` sur la case (un seul chemin, aucun double basculement) et synchronise `aria-expanded`, la classe `.open`, le verrou et le focus ; `nav.js` reste en charge de la pastille, du scroll-spy et du piège de tabulation ;
+- après un PJAX, la case repart décochée et l'état est réaligné (`pjax:load`) : aucun panneau fantôme ;
+- **assets en `Cache-Control: no-cache, must-revalidate`** : un cache de proxy qui ignorerait la query string ne peut plus servir un script périmé (revalidation ETag → 304, coût négligeable).
+
+### Accessibilité conservée
+
+`role="button"`, `tabindex="0"`, `aria-label`, `aria-expanded` et `aria-controls="nv-links"` sur le bouton ; `Entrée` / `Espace` l'activent au clavier ; le focus entre dans le panneau puis revient au bouton à la fermeture.
+
+### Vérifié
+
+- **Chromium réel** (headless) : ouverture au premier clic sur les 6 pages, aux largeurs 1200 / 900 / 700 / 430 px, **avec et sans JavaScript** ;
+- parcours complet : ouverture → navigation PJAX → réouverture → défilement → réouverture → clic extérieur, sans erreur console ;
+- suites : burger 21/21, nav 41/41, pjax 13/13, receive-v2 49/49, e2e 10/10, test 24, mobile 12, CSS 6 feuilles, smoke OK.
+
+- version portée à **1.18.0** (`/api/health`), assets versionnés (`nav.css?v=6`, `nav.js?v=5`, `device.js?v=4`).

@@ -41,7 +41,7 @@ app.use((req, res, next) => {
 });
 
 
-const APP_VERSION = '1.12.0';
+const APP_VERSION = '1.18.0';
 
 // Le port vient toujours de l'environnement (Render, Railway, etc. l'injectent).
 // En local, on retombe sur 3000 comme annoncé dans le README.
@@ -1065,14 +1065,17 @@ app.use((req, res, next) => {
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   // L'interface n'utilise que des scripts/feuilles same-origin et des QR en data: URL.
   // Les attributs style="..." du HTML imposent 'unsafe-inline' pour les styles.
+  // img-src data: est indispensable : les QR codes du tableau de bord et des pages
+  // d'envoi sont des data: URLs générées côté navigateur.
   res.setHeader('Content-Security-Policy', [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://cdn.discordapp.com",
+    "img-src 'self' data: blob: https://cdn.discordapp.com",
     "media-src 'self' blob:",
     "connect-src 'self'",
     "font-src 'self'",
+    "manifest-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'"
@@ -1087,15 +1090,49 @@ app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use('/api', apiRateLimiter);
 app.use('/api/transfers', uploadRateLimiter);
 app.use('/assets', (req, res, next) => {
-  // Les assets sont versionnés dans le HTML: ils peuvent être gardés en cache
-  // sans ralentir les changements de page entre deux écrans.
-  res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+  // Les assets sont versionnés dans le HTML, mais on demande une revalidation
+  // systématique : un cache de proxy qui ignorerait la query string ne peut
+  // plus servir une feuille ou un script périmé (ETag -> 304, coût minime).
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  // Le middleware global pose `Pragma: no-cache` et `Expires: 0` : contradictoire
+  // avec le cache long et respecté par certains proxys, ce qui forçait à
+  // re-télécharger les feuilles et scripts à chaque page (barre lente à peindre).
+  res.removeHeader('Pragma');
+  res.removeHeader('Expires');
   next();
 }, express.static(path.join(PUBLIC_DIR, 'assets'), {
   etag: true,
   lastModified: true,
   maxAge: '1d'
 }));
+
+// ---------------------------------------------------------------------------
+// Icônes et manifeste (fichiers statiques servis depuis la racine publique)
+// ---------------------------------------------------------------------------
+// On les déclare explicitement plutôt que d'exposer tout `public/` : les pages
+// HTML passent par sendPage (détection PC/téléphone) et ne doivent jamais être
+// servies deux fois, avec deux comportements différents.
+const ROOT_STATIC_FILES = {
+  '/favicon.ico': { file: 'favicon.ico', type: 'image/x-icon', maxAge: 604800 },
+  '/favicon.svg': { file: 'favicon.svg', type: 'image/svg+xml', maxAge: 604800 },
+  '/apple-touch-icon.png': { file: 'apple-touch-icon.png', type: 'image/png', maxAge: 2592000 },
+  '/icon-192.png': { file: 'icon-192.png', type: 'image/png', maxAge: 2592000 },
+  '/icon-512.png': { file: 'icon-512.png', type: 'image/png', maxAge: 2592000 },
+  '/site.webmanifest': { file: 'site.webmanifest', type: 'application/manifest+json; charset=utf-8', maxAge: 3600 }
+};
+
+Object.entries(ROOT_STATIC_FILES).forEach(([route, meta]) => {
+  app.get(route, (_req, res, next) => {
+    const filePath = path.join(PUBLIC_DIR, meta.file);
+    res.setHeader('Cache-Control', `public, max-age=${meta.maxAge}`);
+    res.removeHeader('Pragma');
+    res.removeHeader('Expires');
+    res.type(meta.type);
+    res.sendFile(filePath, (error) => {
+      if (error) next(error);
+    });
+  });
+});
 
 // ---------------------------------------------------------------------------
 // Détection automatique PC / téléphone
@@ -1944,25 +1981,31 @@ function publicTransferPayload(req, meta) {
 // En-tête et pied de page partagés avec les pages statiques (design landing).
 function renderSiteHeader() {
   return `  <header class="nv" id="nv">
-    <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span>DropQR</span></a>
-    <nav class="nv-links" id="nv-links" aria-label="Primary">
-      <a href="/#product">Product</a>
-      <a href="/#how">How it works</a>
-      <a href="/#faq">FAQ</a>
-      <a class="nv-app" href="/help"><span class="ico" aria-hidden="true">?</span>Help</a>
-      <a class="nv-app" href="/receive"><span class="ico" aria-hidden="true">↓</span>Receive</a>
-    </nav>
-    <div class="nv-right">
-      <div class="nav-auth" data-discord-auth></div>
-      <a class="nv-cta" href="/upload">Start sharing <span class="arrow" aria-hidden="true">→</span></a>
-      <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+    <input class="nv-toggle" type="checkbox" id="nv-menu" aria-hidden="true" tabindex="-1">
+    <div class="nv-bar">
+      <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
+      <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <span class="nv-pill" aria-hidden="true"></span>
+        <a class="nv-link" href="/#product">Product</a>
+        <a class="nv-link" href="/#how">How it works</a>
+        <a class="nv-link" href="/#faq">FAQ</a>
+        <a class="nv-link" href="/help">Help</a>
+        <a class="nv-chip" href="/receive"><span class="nv-chip-ico" aria-hidden="true">↓</span>Receive</a>
+      </nav>
+      <div class="nv-right">
+        <div class="nav-auth" data-discord-auth></div>
+        <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
+        <label class="nv-burger" for="nv-menu" role="button" tabindex="0" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></label>
+      </div>
     </div>
+    <label class="nv-scrim" for="nv-menu" aria-hidden="true"></label>
+    <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>`;
 }
 
 function renderSiteFooter() {
   return `    <footer class="site-footer">
-      <span class="foot-brand">DropQR</span>
+      <span class="foot-brand"><img src="/assets/logo.svg" width="22" height="22" alt="" aria-hidden="true" loading="lazy" decoding="async">DropQR</span>
       <nav aria-label="App">
         <a href="/upload">Upload</a>
         <a href="/receive">Receive</a>
@@ -1984,17 +2027,23 @@ function renderSharePage(req, meta) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=1"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>Télécharger ${escapeHtml(meta.originalName)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
 ${renderSiteHeader()}
   <div class="shell share-shell">
-    <main class="share-page card">
+    <main id="main" tabindex="-1" class="share-page card">
       <div class="page-code">PUBLIC / DOWNLOAD</div>
       <h1>Le fichier est prêt.</h1>
       <p class="lead">Ce passage est temporaire. Récupère le fichier avant son expiration.</p>
@@ -2015,7 +2064,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
+  <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
 }
@@ -2025,17 +2075,19 @@ function renderMessagePage(title, message) {
 <html lang="fr">
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=1"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>${escapeHtml(title)} — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
 ${renderSiteHeader()}
   <div class="shell share-shell">
-    <main class="share-page card">
+    <main id="main" tabindex="-1" class="share-page card">
       <div class="page-code">SYSTEM / NOTICE</div>
       <h1>${escapeHtml(title)}</h1>
       <p class="lead">${escapeHtml(message)}</p>
@@ -2044,7 +2096,8 @@ ${renderSiteHeader()}
     </main>
 ${renderSiteFooter()}
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
+  <script src="/assets/site.js?v=18" defer></script>
 </body>
 </html>`;
 }

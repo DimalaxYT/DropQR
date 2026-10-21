@@ -1,0 +1,870 @@
+/* DropQR — barre de navigation commune (v2)
+   Chargée APRÈS pages.css / landing.css / mobile.css : elle remplace l'ancienne
+   barre pleine largeur par une barre flottante en verre dépoli.
+
+   Structure (identique sur toutes les pages, y compris celles rendues par le
+   serveur, pour que le remplacement PJAX de #nv ne change rien) :
+
+     header.nv > .nv-bar
+        a.nv-brand (mark + mot-symbole)
+        nav.nv-links > a.nv-link ×4 / a.nv-chip
+        .nv-right > .nav-auth, a.nv-cta, button.nv-burger
+     span.nv-progress > i        (progression de lecture, fixée en haut)
+
+   Rien ici ne dépend d'un framework : tout est CSS, la progression et l'état
+   actif sont posés en JS par site.js. */
+
+:root {
+  --nav-h: 62px;
+  --nav-pad: clamp(10px, 2.2vw, 26px);
+  --nav-radius: 20px;
+}
+
+/* ==========================================================================
+   Conteneur
+   ========================================================================== */
+.nv {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: block;
+  padding: clamp(10px, 1.6vh, 16px) var(--nav-pad) 0;
+  border: 0;
+  background: transparent;
+  transition: padding .4s var(--ease-silk);
+}
+
+.nv.open { background: transparent; border-color: transparent; }
+
+/* Barre escamotée au défilement vers le bas (revient dès qu'on remonte). */
+.nv.is-hidden .nv-bar {
+  transform: translateY(calc(-100% - 24px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nv .nv-bar {
+  transition:
+    height .35s var(--ease-silk),
+    background .4s ease,
+    border-color .4s ease,
+    box-shadow .4s ease,
+    transform .45s var(--ease-silk),
+    opacity .3s ease;
+}
+
+.nv.is-hidden /* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.nv-progress i { opacity: .5; }
+
+.nv.scrolled {
+  padding-top: 8px;
+  padding-bottom: 0;
+  background: transparent;
+  border: 0;
+}
+
+.nv-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 1.6vw, 20px);
+  width: min(1240px, 100%);
+  height: var(--nav-h);
+  margin: 0 auto;
+  padding: 0 9px 0 12px;
+  border-radius: var(--nav-radius);
+  border: 1px solid rgba(236, 233, 226, .09);
+  background:
+    radial-gradient(80% 160% at 12% 0%, rgba(139, 124, 255, .12), transparent 60%),
+    linear-gradient(180deg, rgba(17, 18, 25, .82), rgba(9, 10, 14, .78));
+  /* Un seul filtre, rayon modéré : la barre est fixe au-dessus d'un fond
+     animé, chaque pixel de flou est recalculé à chaque frame. */
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 20px 60px -34px rgba(0, 0, 0, .95),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+  transition:
+    height .35s var(--ease-silk),
+    background .4s ease,
+    border-color .4s ease,
+    box-shadow .4s ease;
+}
+
+/* Filet lumineux en bas de la barre, plus net une fois la page défilée. */
+.nv-bar::after {
+  content: "";
+  position: absolute;
+  left: 14%;
+  right: 14%;
+  bottom: -1px;
+  height: 1px;
+  border-radius: 1px;
+  background: linear-gradient(90deg, transparent, rgba(139, 124, 255, .55), rgba(91, 140, 255, .45), transparent);
+  opacity: .35;
+  transition: opacity .4s ease;
+  pointer-events: none;
+}
+
+.nv.scrolled .nv-bar {
+  height: 54px;
+  background:
+    radial-gradient(80% 160% at 12% 0%, rgba(139, 124, 255, .16), transparent 60%),
+    linear-gradient(180deg, rgba(19, 20, 28, .92), rgba(10, 11, 16, .9));
+  border-color: rgba(236, 233, 226, .12);
+  box-shadow:
+    0 26px 70px -30px rgba(0, 0, 0, 1),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
+}
+
+.nv.scrolled .nv-bar::after { opacity: .8; }
+
+/* ==========================================================================
+   Marque
+   ========================================================================== */
+.nv-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  color: var(--ink);
+  font-size: 16.5px;
+  font-weight: 750;
+  letter-spacing: -.025em;
+  text-decoration: none;
+  transition: color .25s ease;
+}
+
+/* Le logo (SVG animé) remplace l'ancienne marque dessinée en CSS. */
+.nv-logo {
+  display: block;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  box-shadow:
+    0 6px 16px -8px rgba(139, 124, 255, .9),
+    0 0 0 1px rgba(236, 233, 226, .07);
+  transition: transform .5s var(--ease-silk), box-shadow .4s ease, filter .4s ease;
+}
+
+.nv-brand:hover .nv-logo {
+  transform: rotate(-5deg) scale(1.06);
+  box-shadow:
+    0 10px 24px -8px rgba(139, 124, 255, 1),
+    0 0 0 1px rgba(139, 124, 255, .45);
+  filter: saturate(1.15);
+}
+
+.nv-brand .mark {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  overflow: hidden;
+  background: linear-gradient(150deg, #21232f, #0b0c11 70%);
+  border: 1px solid rgba(236, 233, 226, .16);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .1),
+    0 8px 20px -10px rgba(139, 124, 255, .85);
+  transition: transform .5s var(--ease-silk), box-shadow .4s ease, border-color .4s ease;
+}
+
+.nv-brand .mark::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 3px;
+  border: 1.5px solid rgba(236, 233, 226, .92);
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  opacity: .95;
+}
+
+.nv-brand .mark::before {
+  content: "";
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 2px;
+  background: linear-gradient(140deg, #b6abff, var(--violet));
+  box-shadow: 0 0 10px rgba(139, 124, 255, .95);
+}
+
+.nv-brand:hover .mark {
+  transform: rotate(-6deg) scale(1.06);
+  border-color: rgba(139, 124, 255, .55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .14),
+    0 10px 26px -8px rgba(139, 124, 255, 1);
+}
+
+.nv-brand .nv-word { line-height: 1; }
+
+/* ==========================================================================
+   Interrupteur du menu (aucun JavaScript requis)
+   ========================================================================== */
+/* La case à cocher est le seul état du panneau : un clic sur le bouton (un
+   <label for="nv-menu">) la bascule nativement, et le CSS ouvre le panneau.
+   Même si tous les scripts échouent ou arrivent en retard, le menu s'ouvre. */
+.nv-toggle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Liens centraux (segmented control)
+   ========================================================================== */
+.nv-links {
+  position: relative; /* repère de la pastille absolue */
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 auto;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid rgba(236, 233, 226, .06);
+  background: rgba(255, 255, 255, .028);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+.nv .nv-links a.nv-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 10px;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color .25s ease, background .25s ease;
+}
+
+/* Pastille glissante : elle se déplace sous le lien survolé puis revient sur
+   le lien courant. Positionnée en JS (--nv-pill-x / --nv-pill-w). */
+.nv-pill {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  z-index: 0;
+  height: calc(100% - 8px);
+  width: var(--nv-pill-w, 0px);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .07);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06);
+  transform: translateX(var(--nv-pill-x, 0px));
+  opacity: 0;
+  pointer-events: none;
+  /* Court et nerveux : la pastille suit le pointeur, elle ne doit pas arriver
+     avec un temps de retard. */
+  transition:
+    transform .22s var(--ease-silk),
+    width .22s var(--ease-silk),
+    opacity .14s ease;
+}
+
+.nv-pill.is-visible { opacity: 1; }
+
+/* Premier placement (chargement, redimensionnement, polices) : sans animation. */
+.nv-pill.is-instant { transition: none; }
+
+.nv .nv-links a { position: relative; z-index: 1; }
+
+.nv .nv-links a.nv-link::after { display: none; }
+
+.nv .nv-links a.nv-link:hover { color: var(--ink); }
+
+.nv .nv-links a.nv-link:focus-visible {
+  outline: 2px solid rgba(139, 124, 255, .8);
+  outline-offset: 2px;
+}
+
+/* État courant peint dès le premier rendu (avant le script) : la barre est
+   juste tout de suite, sans attendre la mesure de la pastille. Quand le script
+   a positionné la pastille, il ajoute `nv-js` et le fond statique s'efface. */
+.nv .nv-links a.nv-link.is-current {
+  color: var(--ink);
+  background: rgba(255, 255, 255, .07);
+}
+
+html.nv-js .nv .nv-links a.nv-link { transition: color .18s ease, background .18s ease; }
+html.nv-js .nv .nv-links a.nv-link:hover { background: transparent; }
+html.nv-js .nv .nv-links a.nv-link.is-current { background: transparent; }
+
+@media (min-width: 1041px) {
+  .nv .nv-links a.nv-link:nth-child(-n + 3) { font-size: 13px; }
+}
+
+/* Chip « Receive » : seule action mise en avant au centre. */
+.nv .nv-links a.nv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  margin-left: 4px;
+  padding: 0 14px 0 6px;
+  border-radius: 11px;
+  border: 1px solid rgba(139, 124, 255, .34);
+  background: rgba(139, 124, 255, .1);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .3s ease, background .3s ease, box-shadow .4s ease, transform .4s var(--ease-silk);
+}
+
+.nv .nv-links a.nv-chip::after { display: none; }
+
+.nv-chip-ico {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: rgba(139, 124, 255, .24);
+  color: #ded9ff;
+  font-size: 12px;
+  line-height: 1;
+  transition: background .3s ease, color .3s ease;
+}
+
+.nv .nv-links a.nv-chip:hover {
+  border-color: rgba(139, 124, 255, .75);
+  background: rgba(139, 124, 255, .18);
+  box-shadow: 0 12px 30px -18px rgba(139, 124, 255, 1);
+}
+
+.nv .nv-links a.nv-chip.is-current {
+  border-color: transparent;
+  background: linear-gradient(120deg, #8b7cff, #5b8cff);
+  color: #fff;
+  box-shadow:
+    0 14px 34px -16px rgba(139, 124, 255, 1),
+    inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+
+.nv .nv-links a.nv-chip.is-current .nv-chip-ico {
+  background: rgba(255, 255, 255, .22);
+  color: #fff;
+}
+
+/* ==========================================================================
+   Zone droite
+   ========================================================================== */
+.nv-right {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+}
+
+.nv-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 6px 0 16px;
+  border-radius: 13px;
+  background: rgba(236, 233, 226, .95);
+  color: #0b0c0f;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -.005em;
+  text-decoration: none;
+  white-space: nowrap;
+  box-shadow: 0 10px 26px -18px rgba(236, 233, 226, .9);
+  transition: background .3s ease, transform .35s var(--ease-silk), box-shadow .35s ease;
+}
+
+.nv-cta .arrow {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: #0b0c0f;
+  color: #ece9e2;
+  font-size: 13px;
+  line-height: 1;
+  transition: transform .35s var(--ease-silk), background .3s ease;
+}
+
+.nv-cta:hover {
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 34px -18px rgba(139, 124, 255, .7);
+}
+
+.nv-cta:hover .arrow { transform: translateX(2px); }
+
+
+/* Discord (le markup est créé par site.js : on garde les mêmes classes). */
+.nav-auth { display: flex; align-items: center; }
+
+.discord-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 14px;
+  border: 1px solid rgba(88, 101, 242, .5);
+  border-radius: 13px;
+  background: rgba(88, 101, 242, .08);
+  color: #b9c0ff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: border-color .25s ease, background .25s ease, color .25s ease, transform .25s ease;
+}
+
+.discord-auth-btn:hover {
+  border-color: #97a0ff;
+  background: rgba(88, 101, 242, .18);
+  color: #e6e9ff;
+  transform: translateY(-1px);
+}
+
+.discord-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid rgba(88, 101, 242, .45);
+  border-radius: 13px;
+  background: rgba(88, 101, 242, .08);
+}
+
+.discord-chip img { display: block; width: 30px; height: 30px; border-radius: 9px; }
+.discord-chip-name { max-width: 130px; overflow: hidden; color: var(--ink); font-size: 11px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.discord-logout { min-width: 26px; min-height: 26px; padding: 2px; border: 0; background: transparent; color: var(--ink-faint); font-size: 15px; line-height: 1; cursor: pointer; transition: color .2s ease; }
+.discord-logout:hover { color: #ff8f8f; }
+.discord-logout:disabled { cursor: wait; opacity: .4; }
+
+/* ==========================================================================
+   Bouton menu (téléphone / tablette)
+   ========================================================================== */
+.nv-burger {
+  display: none;
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  padding: 0;
+  border-radius: 13px;
+  border: 1px solid rgba(236, 233, 226, .14);
+  background: rgba(255, 255, 255, .04);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .25s ease, background .25s ease;
+}
+
+.nv-burger:hover { border-color: rgba(236, 233, 226, .3); background: rgba(255, 255, 255, .07); }
+
+.nv-burger span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 1.6px;
+  margin: -0.8px 0 0 -8px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: background .2s ease;
+}
+
+.nv-burger span::before,
+.nv-burger span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 16px;
+  height: 1.6px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform .32s var(--ease-silk);
+}
+
+.nv-burger span::before { transform: translateY(-5px); }
+.nv-burger span::after { transform: translateY(5px); }
+
+.nv.open .nv-burger,
+.nv-toggle:checked ~ .nv-bar .nv-burger { border-color: rgba(139, 124, 255, .6); background: rgba(139, 124, 255, .16); }
+
+.nv.open .nv-burger span,
+.nv-toggle:checked ~ .nv-bar .nv-burger span { background: transparent; }
+
+.nv.open .nv-burger span::before,
+.nv-toggle:checked ~ .nv-bar .nv-burger span::before { transform: rotate(45deg); }
+
+.nv.open .nv-burger span::after,
+.nv-toggle:checked ~ .nv-bar .nv-burger span::after { transform: rotate(-45deg); }
+
+/* Le bouton est un <label> : il doit se comporter comme un bouton. */
+.nv-burger { cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.nv-burger:focus-visible { outline: 2px solid rgba(139, 124, 255, .8); outline-offset: 2px; }
+
+/* ==========================================================================
+   Progression de lecture (en haut de la fenêtre)
+   ========================================================================== */
+.nv-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 61;
+  height: 2px;
+  pointer-events: none;
+  background: transparent;
+}
+
+/* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.nv-progress i {
+  display: block;
+  width: var(--nv-progress, 0%);
+  height: 100%;
+  background: linear-gradient(90deg, rgba(139, 124, 255, .3), #8b7cff 40%, #5b8cff);
+  box-shadow: 0 0 14px rgba(139, 124, 255, .75);
+  transform-origin: left center;
+  transition: width .12s linear;
+}
+
+/* ==========================================================================
+   Tablette / téléphone : le menu devient un panneau
+   ========================================================================== */
+/* Voile derrière le panneau de menu. */
+.nv-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: rgba(4, 5, 8, .6);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .3s ease, visibility 0s linear .3s;
+}
+
+.nv.open .nv-scrim,
+.nv-toggle:checked ~ .nv-scrim {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity .3s ease, visibility 0s;
+}
+
+.nv-bar { position: relative; z-index: 2; }
+
+html.nav-open,
+html.nav-open body { overflow: hidden; }
+
+/* Même chose sans JavaScript, quand :has() est disponible. */
+@supports selector(:has(*)) {
+  html:has(.nv-toggle:checked),
+  html:has(.nv-toggle:checked) body { overflow: hidden; }
+}
+
+/* Compense la barre de défilement qui disparaît quand le panneau s'ouvre
+   (largeur mesurée en JS dans --nv-sbw), pour éviter un saut de mise en page. */
+html.nav-open body { padding-right: var(--nv-sbw, 0px); }
+
+@media (max-width: 1040px) {
+  :root { --nav-h: 58px; }
+
+  .nv-burger { display: inline-block; }
+  .nv-right { margin-left: auto; }
+  .nv-pill { display: none; }
+
+  /* Pastille masquée en mode panneau : l'état courant garde son fond. */
+  html.nv-js .nv .nv-links a.nv-link.is-current { background: rgba(255, 255, 255, .06); }
+
+  .nv-links {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    z-index: 3;
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 10px;
+    border-radius: 18px;
+    border: 1px solid rgba(236, 233, 226, .12);
+    background:
+      radial-gradient(90% 120% at 80% 0%, rgba(139, 124, 255, .15), transparent 60%),
+      linear-gradient(180deg, rgba(18, 19, 27, .97), rgba(10, 11, 16, .98));
+    -webkit-backdrop-filter: blur(22px) saturate(1.3);
+    backdrop-filter: blur(22px) saturate(1.3);
+    box-shadow: 0 32px 70px -24px rgba(0, 0, 0, 1), inset 0 1px 0 rgba(255, 255, 255, .06);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(.99);
+    transform-origin: top center;
+    pointer-events: none;
+    /* visibility évite que les liens fermés restent dans l'ordre de tabulation */
+    transition: opacity .24s ease, transform .32s var(--ease-silk), visibility 0s linear .24s;
+  }
+
+  .nv.open .nv-links,
+  .nv-toggle:checked ~ .nv-bar .nv-links {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition: opacity .24s ease, transform .32s var(--ease-silk), visibility 0s;
+  }
+
+  .nv .nv-links a.nv-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: 0 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity .22s ease, transform .3s var(--ease-silk), background .2s ease, color .2s ease;
+  }
+
+  .nv.open .nv-links a,
+  .nv-toggle:checked ~ .nv-bar .nv-links a {
+    opacity: 1;
+    transform: none;
+    transition-delay: calc(var(--nv-i, 0) * 34ms);
+  }
+
+  .nv .nv-links a:nth-child(2) { --nv-i: 0; }
+  .nv .nv-links a:nth-child(3) { --nv-i: 1; }
+  .nv .nv-links a:nth-child(4) { --nv-i: 2; }
+  .nv .nv-links a:nth-child(5) { --nv-i: 3; }
+  .nv .nv-links a:nth-child(6) { --nv-i: 4; }
+  .nv .nv-links a:nth-child(7) { --nv-i: 5; }
+
+  .nv .nv-links a.nv-link::before {
+    content: "";
+    order: 2;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(236, 233, 226, .18);
+    transition: background .25s ease, box-shadow .25s ease;
+  }
+
+  .nv .nv-links a.nv-link:hover::before,
+  .nv .nv-links a.nv-link.is-current::before {
+    background: var(--violet);
+    box-shadow: 0 0 10px rgba(139, 124, 255, .9);
+  }
+
+  .nv .nv-links a.nv-chip {
+    width: 100%;
+    height: 50px;
+    margin: 6px 0 0;
+    justify-content: center;
+    border-radius: 13px;
+    font-size: 14.5px;
+  }
+
+  .nv .nv-links a.nv-chip .nv-chip-ico { width: 26px; height: 26px; }
+}
+
+@media (max-width: 640px) {
+  :root { --nav-h: 54px; --nav-pad: 10px; }
+
+  .nv { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+  .nv.scrolled { padding-top: calc(6px + env(safe-area-inset-top, 0px)); }
+
+  .nv-bar {
+    padding: 0 7px 0 10px;
+    border-radius: 16px;
+    gap: 6px;
+  }
+
+  .nv.scrolled .nv-bar { height: 50px; }
+  .nv-brand { font-size: 15px; gap: 8px; }
+  .nv-logo { width: 27px; height: 27px; border-radius: 8px; }
+  .nv-brand .mark { width: 27px; height: 27px; border-radius: 8px; }
+  .nv-brand .mark::after { inset: 7px; }
+
+  .nv-cta { height: 38px; padding: 0 5px 0 13px; font-size: 12.5px; gap: 8px; }
+  .nv-cta .arrow { width: 26px; height: 26px; border-radius: 8px; font-size: 12px; }
+  .discord-auth-btn { height: 38px; padding: 0 11px; border-radius: 11px; font-size: 9.5px; letter-spacing: .05em; }
+  .discord-chip { height: 38px; border-radius: 11px; padding: 3px 8px 3px 3px; }
+  .discord-chip img { width: 28px; height: 28px; border-radius: 8px; }
+  .nv-burger { width: 38px; height: 38px; border-radius: 11px; }
+}
+
+@media (max-width: 430px) {
+  /* On garde le libellé pour les lecteurs d'écran (nom accessible) tout en le
+     rendant invisible : la flèche seule reste cliquable. */
+  .nv-cta .nv-cta-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .nv-cta { padding: 0 5px; }
+  .nav-auth .discord-auth-btn { padding: 0 9px; }
+}
+
+/* ==========================================================================
+   Version téléphone (header compact au-dessus de la barre d'onglets)
+   ========================================================================== */
+.nv.m-top {
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 8px;
+  /* mobile.css applique un fond plein à .m-top.nv : la barre flottante prend
+     le relais, le header lui-même reste transparent. */
+  background: transparent;
+  border-bottom: 0;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.nv.m-top .nv-bar {
+  height: 54px;
+  padding: 0 7px 0 10px;
+  border-radius: 16px;
+  gap: 8px;
+}
+
+.nv.m-top.scrolled { padding-top: calc(8px + env(safe-area-inset-top, 0px)); }
+.nv.m-top.scrolled .nv-bar { height: 54px; }
+.nv.m-top .nv-burger { display: none; }
+.nv.m-top .nv-right { margin-left: auto; }
+.nv.m-top .nv-brand { font-size: 15.5px; }
+.nv.m-top .nv-logo { width: 28px; height: 28px; border-radius: 8px; }
+.nv.m-top .nv-brand .mark { width: 27px; height: 27px; border-radius: 8px; }
+.nv.m-top .nv-brand .mark::after { inset: 7px; }
+.nv.m-top .nv-cta { height: 36px; padding: 0 4px 0 12px; font-size: 12px; border-radius: 11px; }
+.nv.m-top .nv-cta .arrow { width: 26px; height: 26px; border-radius: 8px; }
+.nv.m-top .discord-auth-btn { height: 36px; padding: 0 10px; border-radius: 11px; font-size: 9.5px; }
+.nv.m-top .discord-chip { height: 36px; border-radius: 11px; padding: 3px 8px 3px 3px; }
+.nv.m-top .discord-chip img { width: 28px; height: 28px; border-radius: 8px; }
+
+/* Décalage du contenu : la barre flotte au-dessus de la page. */
+.shell { padding-top: 96px; }
+.m-shell.shell { padding-top: calc(74px + var(--safe-t, 0px)); }
+
+/* ==========================================================================
+   Mouvement réduit
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html.pjax-loading .nv-progress i { animation: none; opacity: 1; }
+
+  .nv,
+  .nv-bar,
+  .nv-pill,
+  .nv-scrim,
+  .nv-links,
+  .skip-link,
+  .nv-brand .mark,
+  .nv-cta,
+  .nv-cta .arrow,
+  .nv-burger span,
+  .nv-burger span::before,
+  .nv-burger span::after,
+  /* Navigation PJAX en cours (site.js ajoute `pjax-loading` au <html> avant la
+   requête) : la ligne de progression devient un balayage, pour un retour
+   immédiat au clic. */
+html.pjax-loading .nv-progress i {
+  width: 100% !important;
+  background:
+    linear-gradient(90deg, transparent, rgba(139, 124, 255, .9) 45%, #5b8cff 60%, transparent)
+    0 0 / 45% 100% no-repeat;
+  animation: nv-busy 1.05s linear infinite;
+}
+
+@keyframes nv-busy {
+  from { background-position: -50% 0; }
+  to { background-position: 150% 0; }
+}
+
+.nv-progress i {
+    transition: none !important;
+  }
+}
+
+/* ==========================================================================
+   Lien d'évitement (accessibilité clavier)
+   ========================================================================== */
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  z-index: 200;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(139, 124, 255, .6);
+  background: #10111a;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  box-shadow: 0 18px 50px -20px rgba(0, 0, 0, 1);
+  transform: translate(-50%, -160%);
+  transition: transform .25s var(--ease-silk);
+}
+
+.skip-link:focus-visible,
+.skip-link:focus {
+  transform: translate(-50%, 0);
+  outline: 2px solid rgba(139, 124, 255, .9);
+  outline-offset: 2px;
+}
+
+main:focus { outline: none; }

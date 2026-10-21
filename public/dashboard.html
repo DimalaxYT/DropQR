@@ -2,33 +2,47 @@
 <html lang="fr" data-view="desktop" data-switchable>
 <head>
   <meta charset="utf-8">
-  <script src="/assets/device.js?v=1"></script>
+  <script src="/assets/device.js?v=4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
   <meta name="theme-color" content="#08090b">
   <meta name="color-scheme" content="dark">
   <title>Transferts — DropQR</title>
-  <link rel="stylesheet" href="/assets/pages.css?v=3">
+  <link rel="stylesheet" href="/assets/pages.css?v=5">
+  <link rel="stylesheet" href="/assets/code-slots.css?v=2">
+  <link rel="stylesheet" href="/assets/receive.css?v=3">
+  <link rel="stylesheet" href="/assets/nav.css?v=6">
 </head>
 <body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
   <header class="nv" id="nv">
-    <a class="nv-brand" href="/"><span class="mark" aria-hidden="true"></span><span>DropQR</span></a>
-    <nav class="nv-links" id="nv-links" aria-label="Primary">
-      <a href="/#product">Product</a>
-      <a href="/#how">How it works</a>
-      <a href="/#faq">FAQ</a>
-      <a class="nv-app" href="/help"><span class="ico" aria-hidden="true">?</span>Help</a>
-      <a class="nv-app" href="/receive"><span class="ico" aria-hidden="true">↓</span>Receive</a>
-    </nav>
-    <div class="nv-right">
-      <div class="nav-auth" data-discord-auth></div>
-      <a class="nv-cta" href="/upload">Start sharing <span class="arrow" aria-hidden="true">→</span></a>
-      <button class="nv-burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></button>
+    <input class="nv-toggle" type="checkbox" id="nv-menu" aria-hidden="true" tabindex="-1">
+    <div class="nv-bar">
+      <a class="nv-brand" href="/"><img class="nv-logo" src="/assets/logo-anim.svg" width="30" height="30" alt="" aria-hidden="true" decoding="async"><span class="nv-word">DropQR</span></a>
+      <nav class="nv-links" id="nv-links" aria-label="Primary">
+        <span class="nv-pill" aria-hidden="true"></span>
+        <a class="nv-link" href="/#product">Product</a>
+        <a class="nv-link" href="/#how">How it works</a>
+        <a class="nv-link" href="/#faq">FAQ</a>
+        <a class="nv-link" href="/help">Help</a>
+        <a class="nv-chip" href="/receive"><span class="nv-chip-ico" aria-hidden="true">↓</span>Receive</a>
+      </nav>
+      <div class="nv-right">
+        <div class="nav-auth" data-discord-auth></div>
+        <a class="nv-cta" href="/upload"><span class="nv-cta-label">Start sharing</span><span class="arrow" aria-hidden="true">→</span></a>
+        <label class="nv-burger" for="nv-menu" role="button" tabindex="0" aria-label="Menu" aria-expanded="false" aria-controls="nv-links"><span></span></label>
+      </div>
     </div>
+    <label class="nv-scrim" for="nv-menu" aria-hidden="true"></label>
+    <span class="nv-progress" aria-hidden="true"><i></i></span>
   </header>
 
   <div class="shell">
 
-    <main class="dash-layout">
+    <main id="main" tabindex="-1" class="dash-layout">
       <section class="receive-hero card">
         <div class="page-code">04 / DASHBOARD</div>
         <h1 class="small-title">Tes transferts, sous ta main.</h1>
@@ -53,7 +67,7 @@
     </main>
 
     <footer class="site-footer">
-      <span class="foot-brand">DropQR</span>
+      <span class="foot-brand"><img src="/assets/logo.svg" width="22" height="22" alt="" aria-hidden="true" loading="lazy" decoding="async">DropQR</span>
       <nav aria-label="App">
         <a href="/upload">Upload</a>
         <a href="/receive">Receive</a>
@@ -67,7 +81,8 @@
       <span class="colophon">Free unlimited file sharing — drop, share, done.</span>
     </footer>
   </div>
-  <script src="/assets/site.js?v=16" defer></script>
+  <script src="/assets/nav.js?v=5" defer></script>
+  <script src="/assets/site.js?v=18" defer></script>
   <script src="/assets/store.js?v=1" defer></script>
   <script src="/assets/dashboard.js?v=1" defer></script>
 </body>
